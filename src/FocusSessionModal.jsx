@@ -26,7 +26,7 @@ export default function FocusSessionModal({ habit, onClose, onSessionComplete })
   const logSessionComplete = async () => {
     if (!habit || !token) return;
     try {
-      await fetch("http://127.0.0.1:8000/logs", {
+      await fetch("https://habit-backend-v3gv.onrender.com//logs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

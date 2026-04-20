@@ -9,7 +9,7 @@ function Register() {
   const navigate = useNavigate();
 
   function handleRegister() {
-    fetch("http://127.0.0.1:8000/auth/register", {
+    fetch("https://habit-backend-v3gv.onrender.com//auth/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

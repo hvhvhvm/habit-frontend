@@ -107,7 +107,7 @@ function Habit() {
 
   const fetchHabits = useCallback(async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/habits", {
+      const res = await fetch("https://habit-backend-v3gv.onrender.com//habits", {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -221,7 +221,7 @@ function Habit() {
     if (isAddingHabit) return;
     setIsAddingHabit(true);
 
-    fetch("http://127.0.0.1:8000/habits", {
+    fetch("https://habit-backend-v3gv.onrender.com//habits", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -253,7 +253,7 @@ function Habit() {
   };
 
   const deleteHabit = (id) => {
-    fetch(`http://127.0.0.1:8000/habits/${id}`, {
+    fetch(`https://habit-backend-v3gv.onrender.com//habits/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`
@@ -288,7 +288,7 @@ function Habit() {
     if (!editingHabit || isAddingHabit) return;
     setIsAddingHabit(true);
 
-    fetch(`http://127.0.0.1:8000/habits/${editingHabit.id}`, {
+    fetch(`https://habit-backend-v3gv.onrender.com//habits/${editingHabit.id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -334,7 +334,7 @@ function Habit() {
 
     setSubmittingHabitId(habit.id);
 
-    fetch("http://127.0.0.1:8000/logs", {
+    fetch("https://habit-backend-v3gv.onrender.com//logs", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

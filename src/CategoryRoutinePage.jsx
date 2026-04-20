@@ -27,7 +27,7 @@ export default function CategoryRoutinePage() {
 
   const fetchRoutineData = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/dashboard/category/${encodeURIComponent(categoryName)}`, {
+      const res = await fetch(`https://habit-backend-v3gv.onrender.com/dashboard/category/${encodeURIComponent(categoryName)}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -58,7 +58,7 @@ export default function CategoryRoutinePage() {
 
     try {
       setIsSubmitting(habit.id);
-      const res = await fetch("http://127.0.0.1:8000/logs", {
+      const res = await fetch("https://habit-backend-v3gv.onrender.com/logs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -106,7 +106,7 @@ export default function CategoryRoutinePage() {
 
     try {
       setIsAddingSubHabit(habitId);
-      const res = await fetch(`http://127.0.0.1:8000/habits/${habitId}/subhabits`, {
+      const res = await fetch(`https://habit-backend-v3gv.onrender.com/habits/${habitId}/subhabits`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -129,7 +129,7 @@ export default function CategoryRoutinePage() {
 
   const handleToggleSubHabit = async (subHabitId) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/subhabits/${subHabitId}/toggle`, {
+      const res = await fetch(`https://habit-backend-v3gv.onrender.com/subhabits/${subHabitId}/toggle`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`
@@ -149,7 +149,7 @@ export default function CategoryRoutinePage() {
     if (!window.confirm("Delete this sub-habit?")) return;
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/subhabits/${subHabitId}`, {
+      const res = await fetch(`https://habit-backend-v3gv.onrender.com/subhabits/${subHabitId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`

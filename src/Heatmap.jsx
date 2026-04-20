@@ -9,7 +9,7 @@ function Heatmap() {
   useEffect(() => {
     const fetchHeatmapData = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/heatmap", {
+        const res = await fetch("https://habit-backend-v3gv.onrender.com//heatmap", {
           headers: {
             Authorization: `Bearer ${token}`
           }
