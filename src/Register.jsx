@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "./api";
 
 function Register() {
   const [email, setEmail] = useState("");
@@ -9,7 +10,7 @@ function Register() {
   const navigate = useNavigate();
 
   function handleRegister() {
-    fetch("https://habit-backend-v3gv.onrender.com/auth/register", {
+    fetch(apiUrl("/auth/register"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

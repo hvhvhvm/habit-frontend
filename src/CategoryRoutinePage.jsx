@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { apiUrl } from "./api";
 import "./CategoryRoutinePage.css";
 
 function getCompletionValue(habit) {
@@ -27,7 +28,7 @@ export default function CategoryRoutinePage() {
 
   const fetchRoutineData = async () => {
     try {
-      const res = await fetch(`https://habit-backend-v3gv.onrender.com/dashboard/category/${encodeURIComponent(categoryName)}`, {
+      const res = await fetch(apiUrl(`/dashboard/category/${encodeURIComponent(categoryName)}`), {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -58,7 +59,7 @@ export default function CategoryRoutinePage() {
 
     try {
       setIsSubmitting(habit.id);
-      const res = await fetch("https://habit-backend-v3gv.onrender.com/logs", {
+      const res = await fetch(apiUrl("/logs"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -106,7 +107,7 @@ export default function CategoryRoutinePage() {
 
     try {
       setIsAddingSubHabit(habitId);
-      const res = await fetch(`https://habit-backend-v3gv.onrender.com/habits/${habitId}/subhabits`, {
+      const res = await fetch(apiUrl(`/habits/${habitId}/subhabits`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -129,7 +130,7 @@ export default function CategoryRoutinePage() {
 
   const handleToggleSubHabit = async (subHabitId) => {
     try {
-      const res = await fetch(`https://habit-backend-v3gv.onrender.com/subhabits/${subHabitId}/toggle`, {
+      const res = await fetch(apiUrl(`/subhabits/${subHabitId}/toggle`), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`
@@ -149,7 +150,7 @@ export default function CategoryRoutinePage() {
     if (!window.confirm("Delete this sub-habit?")) return;
 
     try {
-      const res = await fetch(`https://habit-backend-v3gv.onrender.com/subhabits/${subHabitId}`, {
+      const res = await fetch(apiUrl(`/subhabits/${subHabitId}`), {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`

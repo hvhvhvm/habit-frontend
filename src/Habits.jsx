@@ -4,6 +4,7 @@ import "./Habits.css";
 import CreateHabitModal from "./CreateHabitModal";
 import FocusSessionModal from "./FocusSessionModal";
 import { getCategoryData } from "./CategoryConfig";
+import { apiUrl } from "./api";
 
 function getQuickValues(habit) {
   if (habit.target_type === "duration") {
@@ -73,14 +74,7 @@ function Habit() {
   const initialTab = location.state?.tab === "completed" ? "completed" : "active";
   const [currentTab, setCurrentTab] = useState(initialTab);
   const [habits, setHabits] = useState([]);
-  const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [target, setTarget] = useState("");
-  const [type, setType] = useState("count");
-  const [time, setTime] = useState("");
-  const [repeat, setRepeat] = useState("daily");
-  const [days, setDays] = useState([]);
-  const [category, setCategory] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [customValues, setCustomValues] = useState({});
   const [submittingHabitId, setSubmittingHabitId] = useState(null);
@@ -88,10 +82,6 @@ function Habit() {
   const [showModal, setShowModal] = useState(false);
   const [editingHabit, setEditingHabit] = useState(null);
   const [focusHabit, setFocusHabit] = useState(null);
-  const [isSession, setIsSession] = useState(false);
-  const [focusTime, setFocusTime] = useState("");
-  const [breakTime, setBreakTime] = useState("");
-  const [totalSessions, setTotalSessions] = useState("");
   const showTemporaryMessage = useCallback((nextMessage) => {
     setMessage(nextMessage);
 
@@ -107,7 +97,7 @@ function Habit() {
 
   const fetchHabits = useCallback(async () => {
     try {
-      const res = await fetch("https://habit-backend-v3gv.onrender.com//habits", {
+      const res = await fetch(apiUrl("/habits"), {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -189,39 +179,11 @@ function Habit() {
     jumpToSection();
   };
 
-  const handleDays = (event) => {
-    const value = event.target.value;
-
-    if (event.target.checked) {
-      setDays((previous) => [...previous, value]);
-      return;
-    }
-
-    setDays((previous) => previous.filter((day) => day !== value));
-  };
-
-  const handleSessionToggle = (checked) => {
-    setIsSession(checked);
-
-    if (checked) {
-      setType("count");
-      setTarget("");
-      setTime("");
-      setRepeat("daily");
-      setDays([]);
-      return;
-    }
-
-    setFocusTime("");
-    setBreakTime("");
-    setTotalSessions("");
-  };
-
   const handleAddHabit = (habitData) => {
     if (isAddingHabit) return;
     setIsAddingHabit(true);
 
-    fetch("https://habit-backend-v3gv.onrender.com//habits", {
+    fetch(apiUrl("/habits"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -253,7 +215,7 @@ function Habit() {
   };
 
   const deleteHabit = (id) => {
-    fetch(`https://habit-backend-v3gv.onrender.com//habits/${id}`, {
+    fetch(apiUrl(`/habits/${id}`), {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`
@@ -288,7 +250,7 @@ function Habit() {
     if (!editingHabit || isAddingHabit) return;
     setIsAddingHabit(true);
 
-    fetch(`https://habit-backend-v3gv.onrender.com//habits/${editingHabit.id}`, {
+    fetch(apiUrl(`/habits/${editingHabit.id}`), {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -334,7 +296,7 @@ function Habit() {
 
     setSubmittingHabitId(habit.id);
 
-    fetch("https://habit-backend-v3gv.onrender.com//logs", {
+    fetch(apiUrl("/logs"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -14,6 +14,7 @@ import {
 import { getCategoryData } from "./CategoryConfig";
 import Heatmap from "./Heatmap";
 import ConsistencyHeatmap from "./ConsistencyHeatmap";
+import { apiUrl } from "./api";
 
 import "./Dashboard.css";
 
@@ -153,7 +154,7 @@ function Dashboard() {
 
     const loadDashboard = async () => {
       try {
-        const res = await fetch("https://habit-backend-v3gv.onrender.com/dashboard/", {
+        const res = await fetch(apiUrl("/dashboard/"), {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -197,7 +198,7 @@ function Dashboard() {
 
     const loadHabits = async () => {
       try {
-        const res = await fetch("https://habit-backend-v3gv.onrender.com/habits", {
+        const res = await fetch(apiUrl("/habits"), {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -241,11 +242,11 @@ function Dashboard() {
       try {
         const headers = { Authorization: `Bearer ${token}` };
         const [dashboardRes, habitsRes, recentRes, streakRes, heatmapRes] = await Promise.all([
-          fetch("https://habit-backend-v3gv.onrender.com/dashboard/", { headers }),
-          fetch("https://habit-backend-v3gv.onrender.com/habits", { headers }),
-          fetch("https://habit-backend-v3gv.onrender.com/habits/recent-completed?limit=5", { headers }),
-          fetch("https://habit-backend-v3gv.onrender.com/streak", { headers }),
-          fetch("https://habit-backend-v3gv.onrender.com/dashboard/heatmap/", { headers })
+          fetch(apiUrl("/dashboard/"), { headers }),
+          fetch(apiUrl("/habits"), { headers }),
+          fetch(apiUrl("/habits/recent-completed?limit=5"), { headers }),
+          fetch(apiUrl("/streak"), { headers }),
+          fetch(apiUrl("/dashboard/heatmap/"), { headers })
         ]);
 
         if ([dashboardRes, habitsRes, recentRes, streakRes, heatmapRes].some(r => r.status === 401)) {
@@ -288,7 +289,7 @@ function Dashboard() {
     try {
       setSubmittingHabitId(habit.id);
 
-      const completeRes = await fetch("https://habit-backend-v3gv.onrender.com/logs", {
+      const completeRes = await fetch(apiUrl("/logs"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -310,27 +311,27 @@ function Dashboard() {
       }
 
       const [habitsRes, dashboardRes, recentRes, streakRes, heatmapRes] = await Promise.all([
-        fetch("https://habit-backend-v3gv.onrender.com/habits", {
+        fetch(apiUrl("/habits"), {
           headers: {
             Authorization: `Bearer ${token}`
           }
         }),
-        fetch("https://habit-backend-v3gv.onrender.com/dashboard/", {
+        fetch(apiUrl("/dashboard/"), {
           headers: {
             Authorization: `Bearer ${token}`
           }
         }),
-        fetch("https://habit-backend-v3gv.onrender.com/habits/recent-completed?limit=5", {
+        fetch(apiUrl("/habits/recent-completed?limit=5"), {
           headers: {
             Authorization: `Bearer ${token}`
           }
         }),
-        fetch("https://habit-backend-v3gv.onrender.com/streak", {
+        fetch(apiUrl("/streak"), {
           headers: {
             Authorization: `Bearer ${token}`
           }
         }),
-        fetch("https://habit-backend-v3gv.onrender.com/dashboard/heatmap/", {
+        fetch(apiUrl("/dashboard/heatmap/"), {
           headers: {
             Authorization: `Bearer ${token}`
           }

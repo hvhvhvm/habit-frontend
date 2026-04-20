@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiUrl } from "./api";
 
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
@@ -26,7 +27,7 @@ export default function FocusSessionModal({ habit, onClose, onSessionComplete })
   const logSessionComplete = async () => {
     if (!habit || !token) return;
     try {
-      await fetch("https://habit-backend-v3gv.onrender.com//logs", {
+      await fetch(apiUrl("/logs"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

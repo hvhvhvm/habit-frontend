@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "./api";
 function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -18,7 +19,7 @@ function Login() {
     formData.append("username", email);
     formData.append("password", password);
 
-    fetch("https://habit-backend-v3gv.onrender.com//auth/login", {
+    fetch(apiUrl("/auth/login"), {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded"

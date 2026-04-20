@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { apiUrl } from "./api";
 import "./Heatmap.css";
 
 function Heatmap() {
@@ -9,7 +10,7 @@ function Heatmap() {
   useEffect(() => {
     const fetchHeatmapData = async () => {
       try {
-        const res = await fetch("https://habit-backend-v3gv.onrender.com//heatmap", {
+        const res = await fetch(apiUrl("/heatmap"), {
           headers: {
             Authorization: `Bearer ${token}`
           }

@@ -2,8 +2,6 @@ import React from 'react';
 import './ConsistencyHeatmap.css';
 
 const ConsistencyHeatmap = ({ data }) => {
-  const weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-  
   // Handle empty or loading data
   if (!data || data.length === 0) {
     return (
