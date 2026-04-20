@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart,
@@ -126,10 +126,10 @@ function Dashboard() {
     );
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
     navigate("/login");
-  };
+  }, [navigate]);
     useEffect(() => {
       if (!token) {
         navigate("/login");
@@ -161,8 +161,7 @@ function Dashboard() {
         });
 
         if (res.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
+          handleLogout();
           return;
         }
 
@@ -191,7 +190,7 @@ function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [navigate, token]);
+  }, [handleLogout, token]);
 
   useEffect(() => {
     let cancelled = false;
@@ -205,8 +204,7 @@ function Dashboard() {
         });
 
         if (res.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
+          handleLogout();
           return;
         }
 
@@ -233,7 +231,7 @@ function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [navigate, token]);
+  }, [handleLogout, token]);
 
   useEffect(() => {
     let cancelled = false;
@@ -281,7 +279,7 @@ function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [navigate, token]);
+  }, [handleLogout, token]);
 
   const activeHabits = habits.filter((habit) => habit.is_due_today && !habit.completed_today);
 

@@ -7,45 +7,66 @@ function Register() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  function handleRegister() {
-    fetch(apiUrl("/auth/register"), {
+  async function handleRegister(event) {
+    event.preventDefault();
+
+    const nextUsername = username.trim();
+    const nextEmail = email.trim().toLowerCase();
+    const nextPassword = password.trim();
+
+    if (!nextUsername || !nextEmail || !nextPassword) {
+      setMessage("Username, email, and password are required");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage("");
+
+    try {
+      const res = await fetch(apiUrl("/auth/register"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        email,
-        username,
-        password
+        email: nextEmail,
+        username: nextUsername,
+        password: nextPassword
       })
-    })
-      .then((res) => {
-        if (!res.ok) {
-          return res.json().then((err) => {
-            throw new Error(err.detail || "Registration failed");
-          });
+    });
+
+      if (!res.ok) {
+        let detail = "Registration failed";
+        try {
+          const errorPayload = await res.json();
+          detail = errorPayload.detail || detail;
+        } catch {
+          detail = "Server returned an unexpected response";
         }
 
-        return res.json();
-      })
-      .then(() => {
-        setMessage("User registered successfully");
+        throw new Error(detail);
+      }
 
-        setTimeout(() => {
-          navigate("/login");
-        }, 1500);
-      })
-      .catch((err) => {
-        setMessage(err.message);
-      });
+      setMessage("User registered successfully");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <div>
       <h2>Register</h2>
 
+      <form onSubmit={handleRegister}>
       <input
         type="text"
         placeholder="Enter username"
@@ -69,7 +90,10 @@ function Register() {
       />
       <br />
       <br />
-      <button onClick={handleRegister}>Register</button>
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Registering..." : "Register"}
+      </button>
+      </form>
       <p>
         Already have an account?{" "}
         <span

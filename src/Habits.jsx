@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Habits.css";
 import CreateHabitModal from "./CreateHabitModal";
@@ -128,19 +128,22 @@ function Habit() {
     setCurrentTab(initialTab);
   }, [initialTab]);
 
-  const activeHabits = habits.filter((habit) => {
+  const activeHabits = useMemo(() => habits.filter((habit) => {
     return habit.is_due_today && !habit.completed_today;
-  });
+  }), [habits]);
 
-  const completedHabits = habits.filter((habit) => {
+  const completedHabits = useMemo(() => habits.filter((habit) => {
     return habit.is_due_today && habit.completed_today;
-  });
+  }), [habits]);
 
-  const currentHabits = currentTab === "active" ? activeHabits : completedHabits;
-  const categories = [
+  const currentHabits = useMemo(
+    () => currentTab === "active" ? activeHabits : completedHabits,
+    [activeHabits, completedHabits, currentTab]
+  );
+  const categories = useMemo(() => [
     "All",
     ...new Set(currentHabits.map((habit) => getHabitCategoryLabel(habit)))
-  ];
+  ], [currentHabits]);
 
   const filterByCategory = useCallback(
     (list) =>

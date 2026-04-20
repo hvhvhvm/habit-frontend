@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiUrl } from "./api";
 import "./CategoryRoutinePage.css";
@@ -26,7 +26,7 @@ export default function CategoryRoutinePage() {
   const [newSubHabitTitle, setNewSubHabitTitle] = useState("");
   const [isAddingSubHabit, setIsAddingSubHabit] = useState(null);
 
-  const fetchRoutineData = async () => {
+  const fetchRoutineData = useCallback(async () => {
     try {
       const res = await fetch(apiUrl(`/dashboard/category/${encodeURIComponent(categoryName)}`), {
         headers: {
@@ -47,12 +47,12 @@ export default function CategoryRoutinePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryName, navigate, token]);
 
   useEffect(() => {
     if (!token) navigate("/login");
     else fetchRoutineData();
-  }, [categoryName, token, navigate]);
+  }, [fetchRoutineData, navigate, token]);
 
   const handleComplete = async (habit) => {
     if (habit.completed_today || isSubmitting) return;
