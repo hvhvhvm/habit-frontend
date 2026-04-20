@@ -1,0 +1,346 @@
+/* CreateHabitModal.css */
+.chm-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.chm-modal {
+  background-color: #192634;
+  color: #fff;
+  border-radius: 12px;
+  width: 440px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  border: 1px solid #383f5f;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Chrome scrollbar for modal */
+.chm-modal::-webkit-scrollbar {
+  width: 8px;
+}
+.chm-modal::-webkit-scrollbar-track {
+  background: #48537b;
+  border-radius: 8px;
+}
+.chm-modal::-webkit-scrollbar-thumb {
+  background: #2a314a;
+  border-radius: 8px;
+}
+
+.chm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 0;
+}
+
+.chm-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.chm-close-btn {
+  background: none;
+  border: none;
+  color: #8c90a4;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.chm-close-btn:hover {
+  color: #fff;
+}
+
+.chm-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.chm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chm-field label, .chm-focus-label-text strong {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.chm-input {
+  background-color: #1e2235;
+  border: 1px solid #2d334a;
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #fff;
+  font-size: 0.95rem;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.chm-input::placeholder {
+  color: #626880;
+}
+
+.chm-input:focus {
+  border-color: #5d678e;
+}
+
+.chm-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23626880' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 36px;
+}
+
+.chm-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chm-category-btn {
+  background-color: #202748;
+  border: 1px solid #2d334a;
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  flex: 1 1 calc(50% - 4px); /* Almost 2 columns */
+}
+
+.chm-category-btn:hover {
+  background-color: #262b42;
+}
+
+.chm-row {
+  display: flex;
+  gap: 16px;
+}
+
+.chm-half {
+  flex: 1;
+}
+
+.chm-time-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.chm-time-input-wrapper .chm-input {
+  width: 100%;
+}
+
+.chm-time-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.chm-focus-timer-toggle {
+  background-color: #27304f;
+  border: 1px solid #2d334a;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-top: 4px;
+}
+
+.chm-focus-timer-toggle.active {
+  border-color: #3f4766;
+  background-color: #23283c;
+}
+
+.chm-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.chm-checkbox-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.chm-checkbox-wrapper input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.chm-checkmark {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #5d678e;
+  border-radius: 4px;
+  background-color: #151824;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.chm-checkbox-wrapper input:checked ~ .chm-checkmark {
+  background-color: #7b88b5;
+  border-color: #7b88b5;
+}
+
+.chm-checkbox-wrapper input:checked ~ .chm-checkmark::after {
+  content: '';
+  width: 4px;
+  height: 8px;
+  border: solid #151824;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-bottom: 2px;
+}
+
+.chm-focus-label-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.chm-focus-label-text span {
+  font-size: 0.8rem;
+  color: #8c90a4;
+  margin-top: 2px;
+}
+
+.chm-focus-settings {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #2d334a;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chm-focus-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0; /* Prevents overflow in flex */
+}
+
+.chm-focus-field label {
+  font-size: 0.8rem;
+  color: #bdc1d3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chm-focus-input {
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chm-days-row {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.chm-day-btn {
+  background-color: #1e2235;
+  border: 1px solid #2d334a;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  color: #bdc1d3;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.chm-day-btn:hover {
+  background-color: #262b42;
+}
+
+.chm-day-btn.active {
+  background-color: #a35dd8;
+  color: #fff;
+  border-color: #a35dd8;
+  box-shadow: 0 4px 12px rgba(163, 93, 216, 0.4);
+}
+
+.chm-footer {
+  display: flex;
+  gap: 12px;
+  padding: 0 24px 24px;
+}
+
+.chm-cancel-btn {
+  flex: 1;
+  background-color: #1e2235;
+  color: #fff;
+  border: 1px solid #2d334a;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.chm-cancel-btn:hover {
+  background-color: #2a3048;
+}
+
+.chm-create-btn {
+  flex: 1;
+  background: linear-gradient(90deg, #d946ef 0%, #8b5cf6 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.chm-create-btn:hover {
+  opacity: 0.9;
+}

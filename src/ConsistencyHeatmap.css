@@ -1,0 +1,198 @@
+.consistency-heatmap-card {
+  background-color: #f8f1e7;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #5c4033;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 20px 0;
+}
+
+.consistency-heatmap-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.consistency-heatmap-icon {
+  font-size: 20px;
+}
+
+.consistency-heatmap-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: #5c4033;
+}
+
+/* Placeholder styles */
+.consistency-heatmap-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  opacity: 0.5;
+}
+
+.placeholder-text {
+  font-size: 14px;
+  color: #8a7a70;
+}
+
+.placeholder-grid {
+  display: flex;
+  gap: 4px;
+  padding-left: 20px; /* Adjusted for smaller labels */
+}
+
+.placeholder-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.placeholder-box {
+  width: 16px;
+  height: 16px;
+  background-color: #dcd0c0;
+  border-radius: 3px;
+}
+
+.consistency-heatmap-content {
+  display: flex;
+  gap: 12px;
+}
+
+.consistency-heatmap-y-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 0; /* Adjusted for smaller boxes */
+  font-size: 10px; /* Slightly smaller font */
+  color: #8a7a70;
+  font-weight: 500;
+  height: 136px; /* (16px box * 7) + (4px gap * 6) = 112 + 24 = 136px */
+}
+
+.consistency-heatmap-grid-container {
+  flex: 1;
+  overflow-x: auto;
+}
+
+.consistency-heatmap-grid {
+  display: flex;
+  gap: 4px; /* Smaller gap */
+}
+
+.consistency-heatmap-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* Smaller gap */
+  flex-shrink: 0;
+}
+
+.consistency-heatmap-box {
+  width: 16px; /* Smaller boxes */
+  height: 16px;
+  border-radius: 3px;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.consistency-heatmap-box:hover .consistency-heatmap-tooltip {
+  display: block;
+}
+
+.consistency-heatmap-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1a202c;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 100;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.consistency-heatmap-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1a202c transparent transparent transparent;
+}
+
+.tooltip-date {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.tooltip-count {
+  opacity: 0.8;
+}
+
+.consistency-heatmap-x-labels {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  color: #8a7a70;
+  font-weight: 500;
+}
+
+.consistency-heatmap-x-label-group {
+  display: flex;
+  width: 24px; /* Matches box width */
+  overflow: hidden;
+  justify-content: center;
+}
+
+.consistency-heatmap-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+  font-size: 13px;
+  color: #8a7a70;
+}
+
+.consistency-heatmap-legend {
+  display: flex;
+  gap: 4px;
+}
+
+.legend-box {
+  width: 10px; /* Smaller legend boxes */
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* Scrollbar styling */
+.consistency-heatmap-grid-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.consistency-heatmap-grid-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.consistency-heatmap-grid-container::-webkit-scrollbar-thumb {
+  background: rgba(220, 208, 192, 0.4);
+  border-radius: 10px;
+}
+
+.consistency-heatmap-grid-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(220, 208, 192, 0.8);
+}
