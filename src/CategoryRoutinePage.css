@@ -52,7 +52,7 @@
 }
 
 .routine-stats-card {
-  background: linear-gradient(135deg, #1e1b4b, #312e81);
+  background: linear-gradient(135deg, #353169, #54528d);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 40px;
@@ -323,7 +323,7 @@
 }
 
 .routine-subhabit-add-btn:hover {
-  background: #6366f1;
+  background: #6769e5;
 }
 
 .routine-subhabit-add-btn:disabled {

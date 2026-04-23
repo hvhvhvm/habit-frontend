@@ -90,7 +90,6 @@ function Dashboard() {
   const [habits, setHabits] = useState([]);
   const [recentCompleted, setRecentCompleted] = useState([]);
   const [submittingHabitId, setSubmittingHabitId] = useState(null);
-  const [streak, setStreak] = useState(null);
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const [heatmapData,setHeatmapData] = useState([]);
@@ -135,6 +134,7 @@ function Dashboard() {
         navigate("/login");
       }
     }, [token, navigate]);
+  
   useEffect(() => {
 
     if (!message) {
@@ -239,32 +239,30 @@ function Dashboard() {
     const loadDashboardData = async () => {
       try {
         const headers = { Authorization: `Bearer ${token}` };
-        const [dashboardRes, habitsRes, recentRes, streakRes, heatmapRes] = await Promise.all([
+        const [dashboardRes, habitsRes, recentRes, heatmapRes] = await Promise.all([
           fetch(apiUrl("/dashboard/"), { headers }),
           fetch(apiUrl("/habits"), { headers }),
           fetch(apiUrl("/habits/recent-completed?limit=5"), { headers }),
-          fetch(apiUrl("/streak"), { headers }),
           fetch(apiUrl("/dashboard/heatmap/"), { headers })
         ]);
 
-        if ([dashboardRes, habitsRes, recentRes, streakRes, heatmapRes].some(r => r.status === 401)) {
+        if ([dashboardRes, habitsRes, recentRes, heatmapRes].some(r => r.status === 401)) {
           handleLogout();
           return;
         }
 
-        const [dashboardData, habitsData, recentData, streakData, heatmapDataResponse] = await Promise.all([
+        const [dashboardData, habitsData, recentData, heatmapDataResponse] = await Promise.all([
           dashboardRes.json(),
           habitsRes.json(),
           recentRes.json(),
-          streakRes.json(),
           heatmapRes.json()
         ]);
+        console.log("DASHBOARD DATA 👉", dashboardData);
 
         if (!cancelled) {
           setData(dashboardData);
           setHabits(habitsData);
           setRecentCompleted(recentData);
-          setStreak(streakData);
           setHeatmapData(heatmapDataResponse);
         }
       } catch (err) {
@@ -308,7 +306,7 @@ function Dashboard() {
         throw new Error("Failed to complete habit");
       }
 
-      const [habitsRes, dashboardRes, recentRes, streakRes, heatmapRes] = await Promise.all([
+      const [habitsRes, dashboardRes, recentRes, heatmapRes] = await Promise.all([
         fetch(apiUrl("/habits"), {
           headers: {
             Authorization: `Bearer ${token}`
@@ -324,11 +322,6 @@ function Dashboard() {
             Authorization: `Bearer ${token}`
           }
         }),
-        fetch(apiUrl("/streak"), {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }),
         fetch(apiUrl("/dashboard/heatmap/"), {
           headers: {
             Authorization: `Bearer ${token}`
@@ -340,31 +333,28 @@ function Dashboard() {
         habitsRes.status === 401 ||
         dashboardRes.status === 401 ||
         recentRes.status === 401 ||
-        streakRes.status === 401 ||
         heatmapRes.status === 401
       ) {
         handleLogout();
         return;
       }
 
-      if (!habitsRes.ok || !dashboardRes.ok || !recentRes.ok || !streakRes.ok || !heatmapRes.ok) {
+      if (!habitsRes.ok || !dashboardRes.ok || !recentRes.ok || !heatmapRes.ok) {
         throw new Error("Failed to refresh dashboard");
       }
 
-      const [nextHabits, nextDashboard, nextRecent, nextStreak, nextHeatmap] = await Promise.all([
+      const [nextHabits, nextDashboard, nextRecent, nextHeatmap] = await Promise.all([
         habitsRes.json(),
         dashboardRes.json(),
         recentRes.json(),
-        streakRes.json(),
         heatmapRes.json()
       ]);
 
       setHabits(nextHabits);
       setData(nextDashboard);
       setRecentCompleted(nextRecent);
-      setStreak(nextStreak);
       setHeatmapData(nextHeatmap);
-      setMessage(`${habit.title} completed from dashboard`);
+      setMessage(`${habit.title} completed! +${habit.points || 10} Points 🎉`);
     } catch (err) {
       console.error(err);
       setMessage(err.message || "Failed to complete habit");
@@ -418,14 +408,6 @@ function Dashboard() {
           <div className="dashboard-title-block">
             <h1 className="dashboard-brand">Habit Dashboard</h1>
             <p className="dashboard-date">{todayLabel}</p>
-            <div className="dashboard-streak-row">
-              <div className="dashboard-streak-chip">
-                {streak?.current_streak ?? 0} day streak
-              </div>
-              {streak?.perfect_day_today && (
-                <div className="dashboard-perfect-day-chip">Perfect day</div>
-              )}
-            </div>
           </div>
 
 
@@ -445,6 +427,13 @@ function Dashboard() {
             </button>
           </div>
         </div>
+        <section className="dashboard-points-hero">
+          <div>
+            <span className="dashboard-stat-label">Points today</span>
+            <h2>{data.today_points ?? 0} / {data.total_points ?? 0}</h2>
+          </div>
+          <p>Completed habits add their reward points here.</p>
+        </section>
         <section className="dashboard-panel">
           <h3>Category Progress</h3>
 
@@ -672,7 +661,7 @@ function Dashboard() {
                       <strong>{habit.title}</strong>
                       <p>
                         {habit.remaining_value}
-                        {habit.target_type === "duration" ? " min" : ""} left
+                   
                       </p>
                     </div>
                     <button
@@ -701,7 +690,7 @@ function Dashboard() {
                   <div key={completed.id}>
                     <strong>{completed.habit_title}</strong>
                     <p className="dashboard-completed-time">
-                      {new Date(completed.completed_at).toLocaleDateString()}
+                      {new Date(completed.completed_at).toLocaleDateString()} • {completed.points || 10} / {completed.points || 10} pts
                     </p>
                   </div>
                 ))}

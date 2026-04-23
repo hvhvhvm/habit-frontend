@@ -45,6 +45,10 @@ function formatScheduleTime(scheduledTime) {
   });
 }
 
+function getHabitPoints(habit) {
+  return Number(habit.points) || 10;
+}
+
 function normalizeHabits(habits) {
   const seen = new Map();
 
@@ -529,6 +533,7 @@ function Habit() {
                       </div>
 
                       <div className="habit-meta">
+                        <span>+ {getHabitPoints(habit)}</span>
                         {habit.is_session ? (
                           <span>Session habit</span>
                         ) : (
@@ -657,7 +662,9 @@ function Habit() {
                         {habit.target_type === "duration" ? " min" : ""}
                       </span>
                     )}
+                    <span> {getHabitPoints(habit)} points</span>
                   </div>
+                  
                   <div className="habit-done-actions">
                     <button
                       className="habit-category-button"

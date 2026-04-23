@@ -12,6 +12,8 @@ export default function CreateHabitModal({ onClose, onAddHabit, onEditHabit, ini
   const [title, setTitle] = useState(initialHabit?.title || '');
   const [category, setCategory] = useState(defaultCategory);
   const [customCategory, setCustomCategory] = useState(!initialCategoryIsStandard ? initialHabit.category : '');
+  const [points, setPoints] = useState(initialHabit?.points ?? 10);
+  const [showPoints, setShowPoints] = useState(false);
   const [type, setType] = useState(initialHabit?.target_type || 'count');
   const [target, setTarget] = useState(initialHabit?.target_value || 1);
   const [repeat, setRepeat] = useState(initialHabit?.repeat || 'daily');
@@ -41,6 +43,7 @@ export default function CreateHabitModal({ onClose, onAddHabit, onEditHabit, ini
       target_type: isSession ? "count" : type,
       target_value: isSession ? Number(totalSessions) : Number(target),
       category: category === 'Custom' ? (customCategory.trim() || 'Custom') : category,
+      points: Math.max(Number(points) || 0, 0),
       scheduled_time: isSession ? null : (time || null),
       repeat: isSession ? "daily" : repeat,
       days: isSession ? [] : (repeat === 'custom' ? days : []), 
@@ -110,6 +113,103 @@ export default function CreateHabitModal({ onClose, onAddHabit, onEditHabit, ini
               />
             </div>
           )}
+
+          <div className="chm-field chm-points-field">
+            <label>Difficulty / Points</label>
+              <p style={{ marginBottom: '8px', fontSize: '1rem' }}>
+                <strong>{points} pts</strong>
+              </p>
+               
+              <button
+                type="button"
+                onClick={() => setShowPoints(prev => !prev)}
+                style={{
+                  marginBottom: '12px',
+                  background: showPoints ? '#1e3a5f' : '#2a3447',   // 👈 main improvement
+                  border: showPoints ? '1px solid #4dabf7' : '1px solid #3b465c',
+                  color: '#e6edf3',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {showPoints ? "Hide Options" : "Change Points"}
+              </button>
+                  {showPoints && (
+                  <>
+                    <div className="chm-difficulty-group">
+                            <button
+                           
+                            type="button"
+                            className={`chm-difficulty-btn ${points === 5 ? 'active easy' : ''}`}
+                            onClick={() => {
+
+                             setPoints(5);
+                             setShowPoints(false);
+                            }}
+                            
+                          >
+                            Easy (5 pts)
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`chm-difficulty-btn ${points === 10 ? 'active med' : ''}`}
+                            onClick={() => {
+                              setPoints(10);
+                              setShowPoints(false);
+                            }}
+                          >
+                            Med (10 pts)
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`chm-difficulty-btn ${points === 15 ? 'active hard' : ''}`}
+                            onClick={() => {
+                              setPoints(15);
+                              setShowPoints(false);
+                            }}
+                          >
+                            Hard (15 pts)
+                          </button>
+                        </div>
+
+                    
+
+                    <div className="chm-points-custom">
+                            <span
+                            style={{
+                              fontSize: '0.84rem',
+                              color: '#bdc1d3',
+                              paddingRight: '12px'
+                            }}
+                          >
+                            Or set custom points:
+                          </span>
+
+                          <input
+                            type="number"
+                            min="0"
+                            value={points}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setPoints(value === "" ? "" : Number(value));
+                            }} 
+                              onBlur={() => {
+                            if (points === "" || points === 0) {
+                              setPoints(10);  
+                            }
+                          }}
+                            className="chm-input chm-points-input"
+                            style={{ padding: '8px', fontSize: '0.9rem' }}
+                          />
+                    </div>
+                  </>
+                )}
+              </div>
+              
 
           <div className="chm-row" style={{ gap: '10px' }}>
             <div className="chm-field" style={{ flex: 1.2, minWidth: 0 }}>

@@ -144,6 +144,81 @@
   gap: 16px;
 }
 
+.chm-points-field {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.chm-points-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chm-points-row span {
+  color: #bdc1d3;
+  font-size: 0.84rem;
+  line-height: 1.3;
+}
+
+.chm-points-input {
+  width: 96px;
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+.chm-difficulty-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chm-difficulty-btn {
+  background-color: #202748;
+  border: 1px solid #2d334a;
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  text-align: center;
+}
+
+.chm-difficulty-btn:hover {
+  background-color: #262b42;
+}
+
+.chm-difficulty-btn.active.easy {
+  background-color: rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
+  color: #fff;
+}
+
+.chm-difficulty-btn.active.med {
+  background-color: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #fff;
+}
+
+.chm-difficulty-btn.active.hard {
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.chm-points-custom {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
 .chm-half {
   flex: 1;
 }
