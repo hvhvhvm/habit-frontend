@@ -1,13 +1,13 @@
 .consistency-heatmap-card {
-  background-color: #f8f1e7;
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #5c4033;
-  width: 100%;
+  width: max-content;
+  min-width: 280px;
+  max-width: 100%;
   box-sizing: border-box;
-  margin: 20px 0;
+  margin: 0 0 18px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 32px;
 }
 
 .consistency-heatmap-header {
@@ -69,11 +69,11 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 2px 0; /* Adjusted for smaller boxes */
-  font-size: 10px; /* Slightly smaller font */
+  padding: 2px 0; 
+  font-size: 13px;
   color: #8a7a70;
   font-weight: 500;
-  height: 136px; /* (16px box * 7) + (4px gap * 6) = 112 + 24 = 136px */
+  height: 122px; /* (16px box * 7) + (6px gap * 6) = 112 + 10 = 122px */
 }
 
 .consistency-heatmap-grid-container {
@@ -83,20 +83,20 @@
 
 .consistency-heatmap-grid {
   display: flex;
-  gap: 4px; /* Smaller gap */
+  gap: 6px;
 }
 
 .consistency-heatmap-column {
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Smaller gap */
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .consistency-heatmap-box {
-  width: 16px; /* Smaller boxes */
+  width: 16px; 
   height: 16px;
-  border-radius: 3px;
+  border-radius: 4px;
   position: relative;
   cursor: pointer;
   flex-shrink: 0;
@@ -164,19 +164,19 @@
   justify-content: center;
   gap: 12px;
   margin-top: 24px;
-  font-size: 13px;
+  font-size: 14px;
   color: #8a7a70;
 }
 
 .consistency-heatmap-legend {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .legend-box {
-  width: 10px; /* Smaller legend boxes */
-  height: 10px;
-  border-radius: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
 }
 
 /* Scrollbar styling */

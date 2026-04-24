@@ -38,15 +38,15 @@ const ConsistencyHeatmap = ({ data }) => {
     weeks.push(week);
   }
 
-  // We only want to show the last 10-12 weeks for the dashboard view
-  const displayWeeks = weeks.slice(-12);
+  // Show last 5 weeks for a month-wise view
+  const displayWeeks = weeks.slice(-5);
 
   const getColor = (count) => {
-    if (count === 0) return '#262a33'; // Empty
-    if (count <= 25) return '#344e5c'; // Low
-    if (count <= 50) return '#a3d977'; // Medium
-    if (count <= 75) return '#4a9e5a'; // High
-    return '#1a5e3a'; // Very High
+    if (count === 0) return 'rgba(45, 36, 24, 0.05)'; // Empty
+    if (count <= 25) return '#b2d1c6'; // Low
+    if (count <= 50) return '#7bbba4'; // Medium
+    if (count <= 75) return '#45997d'; // High
+    return '#216c56'; // Very High
   };
 
   const formatDate = (dateStr) => {
@@ -56,7 +56,7 @@ const ConsistencyHeatmap = ({ data }) => {
   };
 
   return (
-    <div className="consistency-heatmap-card">
+    <div className="dashboard-panel consistency-heatmap-card">
       <div className="consistency-heatmap-header">
         <span className="consistency-heatmap-icon">🔥</span>
         <h3 className="consistency-heatmap-title">Consistency Heatmap</h3>
@@ -94,11 +94,11 @@ const ConsistencyHeatmap = ({ data }) => {
       <div className="consistency-heatmap-footer">
         <span>Less</span>
         <div className="consistency-heatmap-legend">
-          <div className="legend-box" style={{ backgroundColor: '#262a33' }}></div>
-          <div className="legend-box" style={{ backgroundColor: '#344e5c' }}></div>
-          <div className="legend-box" style={{ backgroundColor: '#a3d977' }}></div>
-          <div className="legend-box" style={{ backgroundColor: '#4a9e5a' }}></div>
-          <div className="legend-box" style={{ backgroundColor: '#1a5e3a' }}></div>
+          <div className="legend-box" style={{ backgroundColor: 'rgba(45, 36, 24, 0.05)' }}></div>
+          <div className="legend-box" style={{ backgroundColor: '#b2d1c6' }}></div>
+          <div className="legend-box" style={{ backgroundColor: '#7bbba4' }}></div>
+          <div className="legend-box" style={{ backgroundColor: '#45997d' }}></div>
+          <div className="legend-box" style={{ backgroundColor: '#216c56' }}></div>
         </div>
         <span>More</span>
       </div>

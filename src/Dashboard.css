@@ -140,13 +140,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 12px;
   margin-bottom: 18px;
-  padding: 24px;
-  border-radius: 24px;
+  padding: 16px 20px;
+  border-radius: 20px;
   background: linear-gradient(135deg, #111827 0%, #295a4f 58%, #d6952c 100%);
   color: #fff8ee;
-  box-shadow: 0 24px 48px rgba(41, 90, 79, 0.18);
+  box-shadow: 0 12px 24px rgba(41, 90, 79, 0.12);
 }
 
 .dashboard-points-hero .dashboard-stat-label {
@@ -154,16 +154,17 @@
 }
 
 .dashboard-points-hero h2 {
-  margin: 6px 0 0;
-  font-size: clamp(2.3rem, 6vw, 4rem);
-  line-height: 0.95;
+  margin: 4px 0 0;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1;
 }
 
 .dashboard-points-hero p {
-  max-width: 320px;
+  max-width: 260px;
   margin: 0;
   color: rgba(255, 248, 238, 0.76);
-  font-weight: 700;
+  font-weight: 500;
+  font-size: 0.9rem;
   text-align: right;
 }
 

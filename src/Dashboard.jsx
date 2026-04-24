@@ -148,90 +148,6 @@ function Dashboard() {
     return () => window.clearTimeout(timeout);
   }, [message]);
 
-  useEffect(() => {
-
-    let cancelled = false;
-
-    const loadDashboard = async () => {
-      try {
-        const res = await fetch(apiUrl("/dashboard/"), {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (res.status === 401) {
-          handleLogout();
-          return;
-        }
-
-        if (!res.ok) {
-          throw new Error("Dashboard request failed");
-        }
-
-        const nextData = await res.json();
-
-        if (!cancelled) {
-          setData(nextData);
-          setError("");
-        }
-      } catch (err) {
-        console.error(err);
-
-        if (!cancelled) {
-          setError("We could not load your dashboard right now.");
-        }
-      }
-    };
-
-
-    loadDashboard();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [handleLogout, token]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadHabits = async () => {
-      try {
-        const res = await fetch(apiUrl("/habits"), {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (res.status === 401) {
-          handleLogout();
-          return;
-        }
-
-        if (!res.ok) {
-          throw new Error("Habits request failed");
-        }
-
-        const habitsData = await res.json();
-
-        if (!cancelled) {
-          setHabits(habitsData);
-        }
-      } catch (err) {
-        console.error(err);
-
-        if (!cancelled) {
-          setMessage("Failed to load habits");
-        }
-      }
-    };
-
-    loadHabits();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [handleLogout, token]);
 
   useEffect(() => {
     let cancelled = false;
@@ -241,7 +157,7 @@ function Dashboard() {
         const headers = { Authorization: `Bearer ${token}` };
         const [dashboardRes, habitsRes, recentRes, heatmapRes] = await Promise.all([
           fetch(apiUrl("/dashboard/"), { headers }),
-          fetch(apiUrl("/habits"), { headers }),
+          fetch(apiUrl("/dashboard/my-habits"), { headers }),
           fetch(apiUrl("/habits/recent-completed?limit=5"), { headers }),
           fetch(apiUrl("/dashboard/heatmap/"), { headers })
         ]);
@@ -249,6 +165,9 @@ function Dashboard() {
         if ([dashboardRes, habitsRes, recentRes, heatmapRes].some(r => r.status === 401)) {
           handleLogout();
           return;
+        }
+        if (!dashboardRes.ok || !habitsRes.ok || !recentRes.ok || !heatmapRes.ok) {
+          throw new Error("Failed to load dashboard");
         }
 
         const [dashboardData, habitsData, recentData, heatmapDataResponse] = await Promise.all([
@@ -307,7 +226,7 @@ function Dashboard() {
       }
 
       const [habitsRes, dashboardRes, recentRes, heatmapRes] = await Promise.all([
-        fetch(apiUrl("/habits"), {
+        fetch(apiUrl("/dashboard/my-habits"), {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -427,6 +346,10 @@ function Dashboard() {
             </button>
           </div>
         </div>
+        <h2>{data.streak > 0
+            ?  `🔥 ${data.streak} day streak`
+            : "🔥 Start your streak today!"}
+          </h2>
         <section className="dashboard-points-hero">
           <div>
             <span className="dashboard-stat-label">Points today</span>
