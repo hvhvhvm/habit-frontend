@@ -30,10 +30,12 @@
 .chm-modal::-webkit-scrollbar {
   width: 8px;
 }
+
 .chm-modal::-webkit-scrollbar-track {
   background: #48537b;
   border-radius: 8px;
 }
+
 .chm-modal::-webkit-scrollbar-thumb {
   background: #2a314a;
   border-radius: 8px;
@@ -78,7 +80,8 @@
   gap: 8px;
 }
 
-.chm-field label, .chm-focus-label-text strong {
+.chm-field label,
+.chm-focus-label-text strong {
   font-size: 0.85rem;
   font-weight: 600;
   color: #e2e8f0;
@@ -132,7 +135,8 @@
   align-items: center;
   gap: 8px;
   transition: all 0.2s ease;
-  flex: 1 1 calc(50% - 4px); /* Almost 2 columns */
+  flex: 1 1 calc(50% - 4px);
+  /* Almost 2 columns */
 }
 
 .chm-category-btn:hover {
@@ -283,12 +287,12 @@
   transition: all 0.2s;
 }
 
-.chm-checkbox-wrapper input:checked ~ .chm-checkmark {
+.chm-checkbox-wrapper input:checked~.chm-checkmark {
   background-color: #7b88b5;
   border-color: #7b88b5;
 }
 
-.chm-checkbox-wrapper input:checked ~ .chm-checkmark::after {
+.chm-checkbox-wrapper input:checked~.chm-checkmark::after {
   content: '';
   width: 4px;
   height: 8px;
@@ -315,20 +319,18 @@
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #2d334a;
-  animation: fadeIn 0.2s ease;
+  
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+
 
 .chm-focus-field {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-width: 0; /* Prevents overflow in flex */
+  min-width: 0;
+  /* Prevents overflow in flex */
 }
 
 .chm-focus-field label {
