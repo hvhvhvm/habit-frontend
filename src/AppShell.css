@@ -1,0 +1,304 @@
+/* ── Shell ─────────────────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #f7f4ef;
+  color: #232721;
+}
+
+/* ── Wrapper (lets toggle tab overflow outside clipped aside) ── */
+.app-sidebar-wrap {
+  position: relative;
+  display: flex;
+  flex: 0 0 240px;
+  height: 100vh;
+  transition: flex-basis 0.22s ease;
+}
+.app-sidebar-wrap--collapsed { flex: 0 0 64px; }
+
+/* ── Sidebar ───────────────────────────────────────────────── */
+.app-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  height: 100vh;
+  flex: 0 0 240px;
+  padding: 20px 12px;
+  background: #fff;
+  border-right: 1px solid rgba(0,0,0,0.06);
+  overflow: hidden;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.04);
+  transition: width 0.22s ease, flex-basis 0.22s ease, padding 0.22s ease;
+}
+.app-sidebar--collapsed {
+  width: 64px;
+  flex: 0 0 64px;
+  padding: 20px 8px;
+  align-items: center;
+}
+
+/* ── Brand ─────────────────────────────────────────────────── */
+.app-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px 18px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+.app-sidebar--collapsed .app-sidebar-brand {
+  justify-content: center;
+  padding: 0 0 18px;
+}
+
+.app-sidebar-logo {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2e7b4d, #1a5c38);
+  box-shadow: 0 4px 12px rgba(46,123,77,0.28);
+  position: relative;
+}
+.app-sidebar-logo::after {
+  content: "";
+  position: absolute;
+  width: 2px;
+  height: 16px;
+  left: 15px;
+  top: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.85);
+  transform: rotate(30deg);
+}
+
+.app-sidebar-brand-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1a2e1f;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 1;
+  max-width: 180px;
+  transition: opacity 0.18s ease, max-width 0.22s ease;
+}
+.app-sidebar--collapsed .app-sidebar-brand-name {
+  opacity: 0;
+  max-width: 0;
+  pointer-events: none;
+}
+
+/* ── Nav ────────────────────────────────────────────────────── */
+.app-sidebar-top {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+.app-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ── Links ─────────────────────────────────────────────────── */
+.app-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #4a5244;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.app-sidebar--collapsed .app-sidebar-link {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 10px;
+}
+.app-sidebar-link:hover  { background: rgba(46,123,77,0.08); color: #1a5c38; }
+.app-sidebar-link.is-active { background: rgba(46,123,77,0.11); color: #1a5c38; }
+.app-sidebar-link-muted { color: #6b7568; }
+
+.app-sidebar-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.app-sidebar-link svg { flex: 0 0 auto; opacity: 0.8; }
+
+/* ── Labels ────────────────────────────────────────────────── */
+.app-sidebar-label {
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 1;
+  max-width: 180px;
+  transition: opacity 0.18s ease, max-width 0.22s ease;
+}
+.app-sidebar--collapsed .app-sidebar-label {
+  opacity: 0;
+  max-width: 0;
+  pointer-events: none;
+}
+
+/* ── Badge ─────────────────────────────────────────────────── */
+.app-sidebar-badge {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #d4eeda;
+  color: #1f6b35;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.app-sidebar--collapsed .app-sidebar-badge { display: none; }
+
+/* ── Bottom section ────────────────────────────────────────── */
+.app-sidebar-bottom {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+/* ── Streak card ───────────────────────────────────────────── */
+.app-streak-card {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(46,123,77,0.07), rgba(46,123,77,0.03));
+  border: 1px solid rgba(46,123,77,0.12);
+}
+.app-streak-count { display: flex; align-items: center; gap: 8px; }
+.app-streak-count strong { font-size: 1.3rem; font-weight: 800; color: #1a2e1f; line-height: 1; }
+.app-streak-card > p { margin: 4px 0 0; color: #5a6655; font-size: 0.82rem; line-height: 1.4; }
+.app-streak-divider { display: block; height: 1px; margin: 10px 0; background: rgba(0,0,0,0.06); }
+.app-streak-copy { font-size: 0.78rem; font-weight: 600; color: #2e7b4d; max-width: 130px; }
+
+.app-streak-plant {
+  position: absolute; right: 14px; bottom: -2px;
+  width: 44px; height: 58px;
+  border-bottom: 2px solid rgba(122,157,113,0.15);
+}
+.app-streak-plant::before {
+  content: ""; position: absolute; left: 21px; bottom: 0;
+  width: 2px; height: 54px; border-radius: 999px;
+  background: #91b985; transform: rotate(22deg); transform-origin: bottom;
+}
+.app-streak-plant span {
+  position: absolute; width: 18px; height: 11px;
+  border-radius: 18px 18px 3px 18px;
+  background: rgba(122,174,113,0.55); transform-origin: right center;
+}
+.app-streak-plant span:nth-child(1) { left: 3px;  bottom: 5px;  transform: rotate(36deg); }
+.app-streak-plant span:nth-child(2) { right: 5px; bottom: 20px; transform: rotate(-44deg) scale(0.9); }
+.app-streak-plant span:nth-child(3) { right: 0;   bottom: 36px; transform: rotate(-52deg) scale(0.72); }
+
+/* ── Streak icon-only (collapsed) ─────────────────────────── */
+.app-streak-icon-only {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0;
+}
+.app-streak-icon-count { font-size: 0.72rem; font-weight: 800; color: #e8541e; line-height: 1; }
+
+/* ── Logout ────────────────────────────────────────────────── */
+.app-logout-button {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; height: 40px; padding: 0 12px;
+  border: none; border-radius: 8px; background: transparent;
+  color: #9aa093; font: inherit; font-size: 0.88rem; font-weight: 600;
+  cursor: pointer; white-space: nowrap; overflow: hidden;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.app-sidebar--collapsed .app-logout-button {
+  width: 42px; height: 42px; padding: 0; justify-content: center; border-radius: 10px;
+}
+.app-logout-button:hover { background: rgba(220,50,50,0.07); color: #c0392b; }
+
+/* ── Toggle tab ────────────────────────────────────────────── */
+/* Slim pill on right edge of the wrapper — never clipped by aside */
+.app-sidebar-toggle {
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  transform: translateY(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 48px;
+  border-radius: 0 8px 8px 0;
+  border: none;
+  background: rgba(46,123,77,0.13);
+  color: #2e7b4d;
+  cursor: pointer;
+  box-shadow: 2px 0 10px rgba(46,123,77,0.12);
+  transition: background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+}
+.app-sidebar-toggle svg { width: 13px; height: 13px; flex-shrink: 0; }
+.app-sidebar-toggle:hover {
+  background: rgba(46,123,77,0.88);
+  color: #fff;
+  box-shadow: 2px 0 18px rgba(46,123,77,0.4);
+}
+.app-sidebar-toggle:active { background: #2e7b4d; color: #fff; }
+
+/* ── Main content ──────────────────────────────────────────── */
+.app-main { flex: 1; min-width: 0; height: 100vh; overflow-y: auto; }
+
+/* ── Utility ───────────────────────────────────────────────── */
+.app-shell .dashboard-actions,
+.app-shell .habits-nav-button { display: none; }
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 920px) {
+  .app-shell { display: block; height: auto; overflow: visible; }
+
+  .app-sidebar-wrap { flex: none; height: auto; width: 100%; display: block; }
+
+  .app-sidebar {
+    width: 100% !important; flex: none !important;
+    height: auto; position: relative; display: block;
+    padding: 14px 12px; border-right: none;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow: visible;
+  }
+
+  .app-sidebar-brand { padding: 0 4px 14px; }
+
+  .app-sidebar-nav { flex-direction: row; gap: 4px; overflow-x: auto; padding-bottom: 4px; }
+
+  .app-sidebar-link {
+    width: auto !important; height: 38px; min-width: max-content;
+    padding: 0 12px !important; justify-content: flex-start !important;
+    border-radius: 8px !important;
+  }
+
+  .app-sidebar-label,
+  .app-sidebar-brand-name { opacity: 1 !important; max-width: 200px !important; }
+
+  .app-sidebar-bottom,
+  .app-sidebar-toggle { display: none; }
+
+  .app-main { height: auto; overflow-y: visible; }
+}

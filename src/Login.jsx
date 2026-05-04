@@ -69,8 +69,11 @@ function Login() {
 
 
     return(
+
         <div>
+            
             <h2>Login</h2>
+            
             <form onSubmit={handleLogin}>
             <input 
              type = "text"
@@ -101,6 +104,7 @@ function Login() {
              
               </p>
               {message && <p style={{ color: "red" }}>{message}</p>}
+              
         </div>
     )
 

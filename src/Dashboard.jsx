@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import OneBetterGraph from "./OneBetterGraph";
 import {
   BarChart,
   Bar,
@@ -73,6 +74,30 @@ function getMomentumIndicator(state, delta) {
   };
 }
 
+function getCategoryStatusStyle(percent) {
+  if (percent >= 100) {
+    return {
+      backgroundColor: "rgba(34, 197, 94, 0.1)",
+      borderColor: "rgba(34, 197, 94, 0.28)",
+      color: "#166534",
+    };
+  }
+
+  if (percent > 0) {
+    return {
+      backgroundColor: "rgba(245, 158, 11, 0.1)",
+      borderColor: "rgba(245, 158, 11, 0.28)",
+      color: "#b45309",
+    };
+  }
+
+  return {
+    backgroundColor: "rgba(255, 255, 255, 0.48)",
+    borderColor: "rgba(45, 36, 24, 0.1)",
+    color: "#6b7280",
+  };
+}
+
 function getCompletionValue(habit) {
   return Math.max(
     Number(habit.remaining_value) ||
@@ -83,16 +108,40 @@ function getCompletionValue(habit) {
   );
 }
 
+function getFocusProgress(habit) {
+  const completed = Number(habit.completed_today_value) || 0;
+  const target = Math.max(
+    Number(habit.effective_target_value) || Number(habit.target_value) || 1,
+    1
+  );
+  const percent = Math.min(Math.round((completed / target) * 100), 100);
+  const unit = habit.target_type === "duration" ? "mins" : "done";
+
+  return {
+    percent,
+    text: `${completed} / ${target} ${unit} completed`,
+  };
+}
+
+function getHabitCategoryLabel(habit) {
+  return habit.category?.trim() || "Uncategorized";
+}
+
 function Dashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [habits, setHabits] = useState([]);
   const [recentCompleted, setRecentCompleted] = useState([]);
   const [submittingHabitId, setSubmittingHabitId] = useState(null);
   const navigate = useNavigate();
+  const [user,setUser] = useState(null);
   const token = localStorage.getItem("token");
   const [heatmapData,setHeatmapData] = useState([]);
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
+
+
   const categoryData = data?.categories?.map(c => {
     const catConfig = getCategoryData(c.name);
     return {
@@ -101,6 +150,7 @@ function Dashboard() {
       fill: catConfig.color
     };
   }) || [];
+  const name = localStorage.getItem("name") || "";
 
   const renderCustomBarLabel = (props) => {
     const { x, y, width, value } = props;
@@ -127,6 +177,7 @@ function Dashboard() {
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
+    localStorage.removeItem("name");
     navigate("/login");
   }, [navigate]);
     useEffect(() => {
@@ -134,7 +185,39 @@ function Dashboard() {
         navigate("/login");
       }
     }, [token, navigate]);
-  
+ useEffect(() => {
+  async function fetchUserData() {
+    try {
+      const res = await fetch(apiUrl("/auth/me"), {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error("Failed to load data");
+      }
+
+      const load = await res.json();
+
+      setUser(load);
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  fetchUserData();
+}, [navigate, token]);
+
   useEffect(() => {
 
     if (!message) {
@@ -281,6 +364,19 @@ function Dashboard() {
       setSubmittingHabitId(null);
     }
   };
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const visitedDashboardKey = `visited_dashboard_${user.id}`;
+    const visitedDashboard = localStorage.getItem(visitedDashboardKey);
+
+    if (!visitedDashboard) {
+      setIsFirstVisit(true);
+      localStorage.setItem(visitedDashboardKey, "true");
+    } else {
+      setIsFirstVisit(false);
+    }
+  }, [user?.id]);
 
   if (error) {
     return (
@@ -303,7 +399,14 @@ function Dashboard() {
       </div>
     );
   }
+  function getSessionProgress(habit) {
+    const total = Number(habit.total_sessions) || Number(habit.target_value) || 1;
+    const completed = Math.min(Number(habit.completed_today_value) || 0, total);
+    const remaining = Math.max(total - completed, 0);
+    const percent = Math.min(Math.round((completed / total) * 100), 100);
 
+    return { total, completed, remaining, percent };
+  }
   const momentum = data.momentum;
   const tone = stateCopy[momentum.state] || stateCopy.STEADY;
   const momentumIndicator = getMomentumIndicator(momentum.state, momentum.delta);
@@ -319,13 +422,21 @@ function Dashboard() {
     month: "long",
     day: "numeric"
   });
-
+  const displayName = name || user?.username || "there";
+  const greetingTitle = isFirstVisit
+    ? `Start your journey, ${displayName}`
+    : `Welcome back, ${displayName}`;
+  const greetingCopy = isFirstVisit
+    ? "Your dashboard is ready. Start with one small win today."
+    : "Pick up your rhythm and keep the day moving.";
+  const streakLabel = data.streak > 0 ? `${data.streak} day streak` : "Start your streak today";
+  
   return (
     <div className="dashboard-shell">
       <div className="dashboard-frame">
         <div className="dashboard-topbar">
           <div className="dashboard-title-block">
-            <h1 className="dashboard-brand">Habit Dashboard</h1>
+            
             <p className="dashboard-date">{todayLabel}</p>
           </div>
 
@@ -346,10 +457,30 @@ function Dashboard() {
             </button>
           </div>
         </div>
+        <h1>
+          {isFirstVisit
+            ? `Start your journey, ${name} 🔥`
+            : `Welcome back, ${name} 👋`}
+        </h1>
         <h2>{data.streak > 0
             ?  `🔥 ${data.streak} day streak`
             : "🔥 Start your streak today!"}
           </h2>
+        <section className="dashboard-welcome-row">
+          <div className="dashboard-welcome-card">
+            <span className="dashboard-stat-label">{isFirstVisit ? "First dashboard visit" : "Today"}</span>
+            <h1>{greetingTitle}</h1>
+            <p>{greetingCopy}</p>
+          </div>
+
+          <div className="dashboard-streak-card">
+            <span className="dashboard-streak-icon">🔥</span>
+            <div>
+              <span className="dashboard-stat-label">Streak</span>
+              <strong>{streakLabel}</strong>
+            </div>
+          </div>
+        </section>
         <section className="dashboard-points-hero">
           <div>
             <span className="dashboard-stat-label">Points today</span>
@@ -357,163 +488,232 @@ function Dashboard() {
           </div>
           <p>Completed habits add their reward points here.</p>
         </section>
-        <section className="dashboard-panel">
-          <h3>Category Progress</h3>
+        <section className="dashboard-active-row">
+        <aside className="dashboard-panel dashboard-active-card">
 
-          <div style={{ position: "relative", width: "100%", height: 260, padding: "10px 0" }}>
-            {categoryData.length > 1 && (
-              <div 
-                style={{ 
-                  position: "absolute", 
-                  top: 40, 
-                  bottom: 40, 
-                  left: 55, 
-                  right: 10, 
-                  pointerEvents: "none", 
-                  display: "flex",
-                  zIndex: 1
-                }}
-              >
-                {categoryData.map((_, index) => (
-                  <div 
-                    key={index} 
-                    style={{ 
-                      flex: 1, 
-                      borderRight: index < categoryData.length - 1 ? "1.5px dashed #4b5563" : "none",
-                      opacity: 0.5
-                    }} 
-                  />
-                ))}
-              </div>
-            )}
-            <ResponsiveContainer>
-              <BarChart data={categoryData} margin={{ top: 30, right: 10, left: -5, bottom: 0 }} barCategoryGap="25%">
-                <defs>
-                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4b5563" stopOpacity={0.9} />
-                    <stop offset="100%" stopColor="#1f2937" stopOpacity={0.9} />
-                  </linearGradient>
-                  <linearGradient id="barGradientHover" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6b7280" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#374151" stopOpacity={1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} horizontal={true} stroke="#374151" strokeOpacity={0.4} />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={(props) => {
-                    const { x, y, payload } = props;
-                    return (
-                      <g transform={`translate(${x},${y})`} onClick={() => navigate(`/category-routine/${encodeURIComponent(payload.value)}`)} style={{ cursor: "pointer" }}>
-                        <text
-                          x={0}
-                          y={0}
-                          dy={16}
-                          textAnchor="middle"
-                          fill="#1f2937"
-                          fontSize={14}
-                          fontWeight={700}
-                        >
-                          {payload.value}
-                        </text>
-                      </g>
-                    );
-                  }}
-                  height={50}
-                />
-                <YAxis 
-                  domain={[0, 100]} 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: "#9ca3af", fontSize: 13 }}
-                  dx={-10}
-                  width={40}
-                />
-                <Tooltip 
-                  cursor={{ fill: "rgba(255, 255, 255, 0.04)" }}
-                  contentStyle={{ 
-                    backgroundColor: "#111827", 
-                    border: "1px solid #374151", 
-                    borderRadius: "12px", 
-                    color: "#f9fafb",
-                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.5)",
-                    padding: "12px 16px",
-                    zIndex: 100
-                  }}
-                  itemStyle={{ color: "#a5b4fc", fontWeight: "600" }}
-                  formatter={(value) => [`${value}%`, "Completed"]}
-                />
-
-                <Bar
-                  dataKey="percent"
-                  radius={[6, 6, 0, 0]}
-                  barSize={32}
-                  activeBar={{ cursor: "pointer", stroke: "#9ca3af", strokeWidth: 1 }}
-                  onClick={(data) => {
-                    const category = data?.payload?.name;
-                    if (!category) return;
-                    navigate(`/category-routine/${encodeURIComponent(category)}`);
-                  }}
-                  style={{ cursor: "pointer", transition: "all 0.3s ease" }}
-                >
-                  <LabelList dataKey="percent" content={renderCustomBarLabel} />
-                  {categoryData.map((entry, index) => {
-                    let fillColor = "#f59e0b"; // Warning: Yellow
-                    if (entry.percent >= 90) {
-                      fillColor = "#166534"; // Strong consistency: Dark Green
-                    } else if (entry.percent >= 60) {
-                      fillColor = "#22c55e"; // Average progress: Normal Green
-                    }
-                    return <Cell key={`cell-${index}`} fill={fillColor} />;
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
-
-        <ConsistencyHeatmap data={heatmapData} />
-
-        {message && <p className="dashboard-message">{message}</p>}
-
-        <section className="dashboard-panel dashboard-progress-hero">
-          <div className="dashboard-progress-hero-head">
+          <div className="dashboard-focus-now-head">
             <div>
-              <span className="dashboard-stat-label">Today&apos;s progress</span>
-              <h2 className="dashboard-progress-hero-title">
-                {Math.round(todayProgress)}% complete
-              </h2>
-            </div>
-            <strong className="dashboard-progress-ratio">{completedRatio}</strong>
-          </div>
+              <span className="dashboard-stat-label">
+                Next action
+              </span>
 
-          <div className="dashboard-track dashboard-track-large" aria-hidden="true">
+              <h2>Focus Now</h2>
+            </div>
+
+            <button
+              className="dashboard-routine-button"
+              type="button"
+            >
+              Routine
+            </button>
+          </div>
+          
+
+          {activeHabits.length === 0 ? (
+            <p className="dashboard-empty-copy">
+              No active habits left today.
+              Your dashboard is clear.
+            </p>
+          ) : (
             <div
-              className="dashboard-fill"
-              style={{ width: `${todayProgress}%` }}
-            />
-          </div>
+              className="dashboard-focus-strip"
+              aria-label="Active habits to focus on"
+            >
+              {activeHabits.map((habit) => {
 
-          <div className="dashboard-progress-summary">
-            <div className="dashboard-progress-pill">
-              <span>Completed</span>
-              <strong>{data.completed_today}</strong>
-            </div>
-            <div className="dashboard-progress-pill">
-              <span>Active today</span>
-              <strong>{activeHabits.length}</strong>
-            </div>
-            <div className="dashboard-progress-pill">
-              <span>Momentum</span>
-              <strong>{tone.label}</strong>
-            </div>
-          </div>
-        </section>
+                const progress = getFocusProgress(habit);
 
-        <section className="dashboard-focus-grid">
-          <article className="dashboard-panel dashboard-momentum-card">
+                const category =
+                  getHabitCategoryLabel(habit);
+
+                const sessionProgress =
+                  getSessionProgress(habit);
+
+                return (
+                  <article
+                    key={habit.id}
+                    className="dashboard-focus-card"
+                    onClick={() => navigate("/habits")}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className="dashboard-focus-card-top">
+                      <span>{category}</span>
+
+                      <h3>{habit.title}</h3>
+                    </div>
+
+                    <p className="dashboard-focus-progress-text">
+                      {progress.text}
+                    </p>
+
+                    <div
+                      className="dashboard-focus-progress-track"
+                      aria-hidden="true"
+                    >
+                      <div
+                        className="dashboard-focus-progress-fill"
+                        style={{
+                          width: `${progress.percent}%`
+                        }}
+                      />
+                    </div>
+
+                    <p className="dashboard-focus-copy">
+                      {sessionProgress.remaining > 0
+                        ? `${sessionProgress.remaining} left today`
+                        : "Almost complete 🔥"}
+                    </p>
+
+                    <button
+                      className="dashboard-focus-complete"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleCompleteHabit(habit);
+                      }}
+                      disabled={submittingHabitId === habit.id}
+                      type="button"
+                    >
+                      {submittingHabitId === habit.id
+                        ? "Saving..."
+                        : "Complete"}
+                    </button>
+                  </article>
+
+                );
+              })}
+            </div>
+          )}
+          
+        </aside>
+      </section>
+      <OneBetterGraph />
+
+
+
+        <section className="dashboard-insight-grid" id="insights">
+          <article className="dashboard-panel dashboard-category-card">
+            <div className="dashboard-card-head">
+              <div>
+                <span className="dashboard-stat-label">By area</span>
+                <h3>Category Progress</h3>
+              </div>
+              <strong>{Math.round(todayProgress)}%</strong>
+            </div>
+
+            <div className="dashboard-category-chart">
+              <ResponsiveContainer>
+                <BarChart data={categoryData} margin={{ top: 18, right: 8, left: 4, bottom: 2 }} barCategoryGap="30%">
+                  <defs>
+                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#4b5563" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="#1f2937" stopOpacity={0.9} />
+                    </linearGradient>
+                    <linearGradient id="barGradientHover" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6b7280" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#374151" stopOpacity={1} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="4 8" vertical={false} horizontal={true} stroke="#374151" strokeOpacity={0.24} />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={(props) => {
+                      const { x, y, payload } = props;
+                      return (
+                        <g transform={`translate(${x},${y})`} onClick={() => navigate(`/category-routine/${encodeURIComponent(payload.value)}`)} style={{ cursor: "pointer" }}>
+                          <text
+                            x={0}
+                            y={0}
+                            dy={16}
+                            textAnchor="middle"
+                            fill="#1f2937"
+                            fontSize={13}
+                            fontWeight={700}
+                          >
+                            {payload.value}
+                          </text>
+                        </g>
+                      );
+                    }}
+                    height={50}
+                  />
+                  <YAxis 
+                    domain={[0, 100]} 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: "#9ca3af", fontSize: 12, fontWeight: 700 }}
+                    tickFormatter={(value) => `${value}`}
+                    width={34}
+                  />
+                  <Tooltip 
+                    cursor={{ fill: "rgba(255, 255, 255, 0.04)" }}
+                    contentStyle={{ 
+                      backgroundColor: "#111827", 
+                      border: "1px solid #374151", 
+                      borderRadius: "12px", 
+                      color: "#f9fafb",
+                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.5)",
+                      padding: "12px 16px",
+                      zIndex: 100
+                    }}
+                    itemStyle={{ color: "#a5b4fc", fontWeight: "600" }}
+                    formatter={(value) => [`${value}%`, "Completed"]}
+                  />
+
+                  <Bar
+                    dataKey="percent"
+                    radius={[6, 6, 0, 0]}
+                    barSize={38}
+                    maxBarSize={54}
+                    minPointSize={8}
+                    activeBar={{ cursor: "pointer", stroke: "#1f2937", strokeWidth: 1.5, fillOpacity: 0.9 }}
+                    onClick={(data) => {
+                      const category = data?.payload?.name;
+                      if (!category) return;
+                      navigate(`/category-routine/${encodeURIComponent(category)}`);
+                    }}
+                    style={{ cursor: "pointer", transition: "all 0.3s ease" }}
+                  >
+                    <LabelList dataKey="percent" content={renderCustomBarLabel} />
+                    {categoryData.map((entry, index) => {
+                      let fillColor = "#f59e0b"; // Warning: Yellow
+                      if (entry.percent >= 90) {
+                        fillColor = "#166534"; // Strong consistency: Dark Green
+                      } else if (entry.percent >= 60) {
+                        fillColor = "#22c55e"; // Average progress: Normal Green
+                      }
+                      return <Cell key={`cell-${index}`} fill={fillColor} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="dashboard-category-summary">
+              {categoryData.map((category) => {
+                const statusStyle = getCategoryStatusStyle(category.percent);
+
+                return (
+                  <button
+                    key={category.name}
+                    className="dashboard-category-chip"
+                    onClick={() => navigate(`/category-routine/${encodeURIComponent(category.name)}`)}
+                    style={{
+                      backgroundColor: statusStyle.backgroundColor,
+                      borderColor: statusStyle.borderColor,
+                    }}
+                    type="button"
+                  >
+                    <span>{category.name}</span>
+                    <strong style={{ color: statusStyle.color }}>{Math.round(category.percent)}%</strong>
+                  </button>
+                );
+              })}
+            </div>
+          </article>
+
+          <article className="dashboard-panel dashboard-momentum-card" id="momentum">
             <div className="dashboard-momentum-head">
               <span
                 className={`dashboard-label dashboard-label-${momentum.state.toLowerCase()}`}
@@ -560,71 +760,48 @@ function Dashboard() {
               </div>
             </div>
           </article>
-
-          <aside
-            className="dashboard-panel dashboard-active-card"
-            onClick={() => navigate("/habits")}
-            style={{ cursor: "pointer" }}
-          >
-            <div className="dashboard-active-head">
-              <div>
-                <span className="dashboard-stat-label">Active habits</span>
-              </div>
-            </div>
-
-            {activeHabits.length === 0 ? (
-              <p className="dashboard-empty-copy">
-                No active habits left today. Your dashboard is clear.
-              </p>
-            ) : (
-              <div className="dashboard-preview-list">
-                {activeHabits.slice(0, 3).map((habit) => (
-                  <div key={habit.id} className="dashboard-preview-item">
-                    <div>
-                      <strong>{habit.title}</strong>
-                      <p>
-                        {habit.remaining_value}
-                   
-                      </p>
-                    </div>
-                    <button
-                      className="dashboard-inline-button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleCompleteHabit(habit);
-                      }}
-                      disabled={submittingHabitId === habit.id}
-                    >
-                      {submittingHabitId === habit.id ? "Saving..." : "Complete"}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div>
-              <span className="dashboard-stat-label">Recent completed habits</span>
-            </div>
-            {recentCompleted.length === 0 ? (
-              <p>No habits completed yet.</p>
-            ) : (
-              <div>
-                {recentCompleted.slice(0, 3).map((completed) => (
-                  <div key={completed.id}>
-                    <strong>{completed.habit_title}</strong>
-                    <p className="dashboard-completed-time">
-                      {new Date(completed.completed_at).toLocaleDateString()} • {completed.points || 10} / {completed.points || 10} pts
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button onClick={() => navigate("/habits", { state: { tab: "completed" } })}>
-              View All
-            </button>
-          </aside>
         </section>
 
+        <ConsistencyHeatmap data={heatmapData} />
+        
+
+        {message && <p className="dashboard-message">{message}</p>}
+
+        <section className="dashboard-panel dashboard-progress-hero">
+          <div className="dashboard-progress-hero-head">
+            <div>
+              <span className="dashboard-stat-label">Today&apos;s progress</span>
+              <h2 className="dashboard-progress-hero-title">
+                {Math.round(todayProgress)}% complete
+              </h2>
+            </div>
+            <strong className="dashboard-progress-ratio">{completedRatio}</strong>
+          </div>
+
+          <div className="dashboard-track dashboard-track-large" aria-hidden="true">
+            <div
+              className="dashboard-fill"
+              style={{ width: `${todayProgress}%` }}
+            />
+          </div>
+
+          <div className="dashboard-progress-summary">
+            <div className="dashboard-progress-pill">
+              <span>Completed</span>
+              <strong>{data.completed_today}</strong>
+            </div>
+            <div className="dashboard-progress-pill">
+              <span>Active today</span>
+              <strong>{activeHabits.length}</strong>
+            </div>
+            <div className="dashboard-progress-pill">
+              <span>Momentum</span>
+              <strong>{tone.label}</strong>
+            </div>
+          </div>
+        </section>
+
+        
         <section className="dashboard-grid">
           <article className="dashboard-panel dashboard-stat-card">
             <span className="dashboard-stat-label">Today</span>
