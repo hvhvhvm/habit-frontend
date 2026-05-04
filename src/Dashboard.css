@@ -772,6 +772,137 @@
   color: #2d2418;
 }
 
+
+@media (max-width: 768px) {
+
+  /* Main spacing */
+  .dashboard-shell {
+    padding: 12px;
+  }
+
+  .dashboard-frame {
+    width: 100%;
+  }
+
+  /* All grids become single column */
+  .dashboard-insight-grid,
+  .dashboard-focus-grid,
+  .dashboard-grid,
+  .dashboard-category-summary {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Cards */
+  .dashboard-panel,
+  .dashboard-stat-card,
+  .dashboard-momentum-card,
+  .dashboard-category-card {
+    width: 100%;
+    min-width: 0;
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  /* Welcome section */
+  .dashboard-welcome-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .dashboard-welcome-card h1 {
+    font-size: 2rem;
+    line-height: 1.1;
+  }
+
+  /* Points hero */
+  .dashboard-points-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px;
+    gap: 14px;
+  }
+
+  .dashboard-points-hero h2 {
+    font-size: 2rem;
+  }
+
+  .dashboard-points-hero p {
+    text-align: left;
+    max-width: 100%;
+    font-size: 0.95rem;
+  }
+
+  /* Focus cards horizontal scroll */
+  .dashboard-focus-strip {
+    grid-auto-columns: 88%;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  /* Momentum section */
+  .dashboard-momentum-head,
+  .dashboard-momentum-main,
+  .dashboard-momentum-stats {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard-score-block {
+    text-align: left;
+  }
+
+  /* Graph section */
+  .dashboard-category-chart {
+    height: 220px;
+  }
+
+  /* Recharts fix */
+  .recharts-responsive-container {
+    min-height: 220px !important;
+  }
+
+  /* Smaller graph text */
+  .recharts-cartesian-axis-tick-value {
+    font-size: 10px !important;
+  }
+
+  /* Buttons */
+  .dashboard-button,
+  .dashboard-inline-button,
+  .dashboard-routine-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Smaller stats cards */
+  .dashboard-stat-card {
+    min-height: auto;
+  }
+
+  .dashboard-stat-value {
+    font-size: 2rem;
+  }
+
+  /* Better spacing */
+  .dashboard-headline {
+    font-size: 2.2rem;
+  }
+
+  .dashboard-progress-hero-title {
+    font-size: 2.5rem;
+  }
+
+  /* Prevent chart overflow */
+  svg {
+    max-width: 100%;
+  }
+
+  /* Prevent horizontal scrolling */
+  body {
+    overflow-x: hidden;
+  }
+}
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
