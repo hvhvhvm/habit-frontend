@@ -312,6 +312,9 @@
 /* ── Mobile overlay ─────────────────────────────────────────── */
 .mobile-overlay { display: none; }
 
+/* ── Keyframes (must be top-level for lightningcss compat) ── */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
 /* ═══════════════════════════════════════════════════════════════
    MOBILE — tablet and phone
    ═══════════════════════════════════════════════════════════════ */
@@ -405,7 +408,6 @@
     z-index: 250;
     animation: fadeIn 0.2s ease;
   }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   /* ── Hide desktop collapse toggle on mobile ── */
   .collapse-toggle { display: none; }
