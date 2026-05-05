@@ -922,6 +922,7 @@
 .dashboard-stat-value {
   margin: 0;
   font-size: clamp(1.5rem, 3vw, 2.2rem);
+}
 
 .dashboard-stat-positive {
   color: #295a4f;
