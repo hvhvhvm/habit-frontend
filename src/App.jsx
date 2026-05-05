@@ -10,6 +10,7 @@ import CategoryRoutinePage from "./CategoryRoutinePage";
 import Onboarding from "./onboarding";
 import AppShell from "./AppShell";
 import { apiUrl } from "./api";
+import OnePercent from "./1percent";
 
 function normalizeHabitTargetType(targetType) {
   return targetType === "duration" || targetType === "minutes" ? "duration" : "count";
@@ -172,6 +173,15 @@ function App() {
           <ProtectedRoute>
             <AppShell>
               <FocusPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/1percent"        
+       element={
+          <ProtectedRoute>
+            <AppShell>
+              <OnePercent />
             </AppShell>
           </ProtectedRoute>
         }

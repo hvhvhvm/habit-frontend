@@ -391,35 +391,7 @@ export default function OneBetterGraph() {
 
   return (
     <section className="one-better">
-      <div className="one-better-stats">
-        <StatCard
-          label="Journey Signal"
-          value={`${latestProgress}%`}
-          sub={message}
-          icon={<TrendUpIcon />}
-          tone="hero"
-        />
-        <StatCard
-          label="Consistency"
-          value={`${consistency}%`}
-          sub="Last 30 due days"
-          icon={<CalendarIcon />}
-        />
-        <StatCard
-          label="Best Streak"
-          value={`${bestStreak} Days`}
-          sub="Since journey start"
-          icon={<StarIcon />}
-          tone="green"
-        />
-        <StatCard
-          label="Current Streak"
-          value={`${streak} Days`}
-          sub="Current rhythm"
-          icon={<FlameIcon />}
-          tone="warm"
-        />
-      </div>
+
 
       <article className="one-better-card">
         <header className="one-better-header">

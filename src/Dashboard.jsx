@@ -586,10 +586,7 @@ function Dashboard() {
           
         </aside>
       </section>
-      <OneBetterGraph />
-
-
-
+      
         <section className="dashboard-insight-grid" id="insights">
           <article className="dashboard-panel dashboard-category-card">
             <div className="dashboard-card-head">
@@ -761,6 +758,10 @@ function Dashboard() {
             </div>
           </article>
         </section>
+
+      <OneBetterGraph />
+
+
 
         <ConsistencyHeatmap data={heatmapData} />
         

@@ -8,25 +8,15 @@ import { apiUrl } from "./api";
 
 function getQuickValues(habit) {
   if (habit.target_type === "duration") {
-    return [10, 15, 30].filter((value, index, array) => {
-      return value > 0 && array.indexOf(value) === index;
-    });
+    return [10, 15, 30].filter((value, index, array) => value > 0 && array.indexOf(value) === index);
   }
-
   const target = Number(habit.target_value) || 1;
   const values = [1, Math.min(3, target), Math.min(5, target)];
-
-  return values.filter((value, index, array) => {
-    return value > 0 && array.indexOf(value) === index;
-  });
+  return values.filter((value, index, array) => value > 0 && array.indexOf(value) === index);
 }
 
 function formatQuickLabel(habit, value) {
-  if (habit.target_type === "duration") {
-    return `+${value} min`;
-  }
-
-  return `+${value}`;
+  return habit.target_type === "duration" ? `+${value} min` : `+${value}`;
 }
 
 function getHabitCategoryLabel(habit) {
@@ -34,14 +24,9 @@ function getHabitCategoryLabel(habit) {
 }
 
 function formatScheduleTime(scheduledTime) {
-  if (!scheduledTime) {
-    return "Anytime";
-  }
-
+  if (!scheduledTime) return "Anytime";
   return new Date(`1970-01-01T${scheduledTime}`).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true
+    hour: "2-digit", minute: "2-digit", hour12: true,
   });
 }
 
@@ -51,13 +36,7 @@ function getHabitPoints(habit) {
 
 function normalizeHabits(habits) {
   const seen = new Map();
-
-  habits.forEach((habit) => {
-    if (habit?.id != null) {
-      seen.set(habit.id, habit);
-    }
-  });
-
+  habits.forEach((habit) => { if (habit?.id != null) seen.set(habit.id, habit); });
   return Array.from(seen.values());
 }
 
@@ -66,10 +45,228 @@ function getSessionProgress(habit) {
   const completed = Math.min(Number(habit.completed_today_value) || 0, total);
   const remaining = Math.max(total - completed, 0);
   const percent = Math.min(Math.round((completed / total) * 100), 100);
-
   return { total, completed, remaining, percent };
 }
 
+/* ── Small reusable icon components ── */
+function IconPencil() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+      <path d="m15 5 4 4"/>
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+      <line x1="10" x2="10" y1="11" y2="17"/>
+      <line x1="14" x2="14" y1="11" y2="17"/>
+    </svg>
+  );
+}
+
+function IconPlus() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+  );
+}
+
+function IconZap() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>
+    </svg>
+  );
+}
+
+function IconClock() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 6v6l4 2"/>
+    </svg>
+  );
+}
+
+function IconRepeat() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 2l4 4-4 4"/>
+      <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+      <path d="M7 22l-4-4 4-4"/>
+      <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+    </svg>
+  );
+}
+
+function IconCheck() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 6L9 17l-5-5"/>
+    </svg>
+  );
+}
+
+/* ── Habit card ── */
+function HabitCard({ habit, submittingHabitId, customValues, onEdit, onDelete, onQuick, onCustomChange, onCustomSubmit, onFocus, onCategoryClick }) {
+  const sessionProgress = getSessionProgress(habit);
+  const catData = getCategoryData(getHabitCategoryLabel(habit));
+  const isSubmitting = submittingHabitId === habit.id;
+
+  return (
+    <article className="hcard">
+      {/* Top row: title + actions */}
+      <div className="hcard-top">
+        <div className="hcard-title-wrap">
+          <h4 className="hcard-title">{habit.title}</h4>
+          <button
+            className="hcard-cat-tag"
+            style={{ background: `${catData.color}18`, color: catData.color, borderColor: `${catData.color}35` }}
+            onClick={() => onCategoryClick(getHabitCategoryLabel(habit))}
+          >
+            {getHabitCategoryLabel(habit)}
+          </button>
+        </div>
+        <div className="hcard-actions">
+          <button className="hcard-btn hcard-btn--edit" onClick={() => onEdit(habit)} title="Edit">
+            <IconPencil />
+          </button>
+          <button className="hcard-btn hcard-btn--delete" onClick={() => onDelete(habit.id)} title="Delete">
+            <IconTrash />
+          </button>
+        </div>
+      </div>
+
+      {/* Subtitle */}
+      <p className="hcard-sub">
+        {habit.is_session
+          ? `${habit.total_sessions} sessions · ${habit.focus_time} min focus · ${habit.break_time} min break`
+          : `${habit.target_type === "duration" ? "Minutes" : "Count"} target: ${habit.target_value}`}
+      </p>
+
+      {/* Meta chips */}
+      <div className="hcard-meta">
+        <span className="hcard-chip hcard-chip--points"><IconZap /> {getHabitPoints(habit)} pts</span>
+        {!habit.is_session && (
+          <>
+            <span className="hcard-chip"><IconClock /> {formatScheduleTime(habit.scheduled_time)}</span>
+            <span className="hcard-chip"><IconRepeat /> {habit.repeat}</span>
+            {habit.repeat === "custom" && habit.days?.length > 0 && (
+              <span className="hcard-chip">{habit.days.join(", ")}</span>
+            )}
+          </>
+        )}
+        {habit.is_session && <span className="hcard-chip">Session habit</span>}
+      </div>
+
+      {/* Progress */}
+      <div className="hcard-progress">
+        <div className="hcard-progress-info">
+          {habit.is_session ? (
+            <>
+              <span className="hcard-progress-pct">{sessionProgress.percent}%</span>
+              <span className="hcard-progress-detail">{sessionProgress.completed}/{sessionProgress.total} sessions · {sessionProgress.remaining} left</span>
+            </>
+          ) : (
+            <>
+              <span className="hcard-progress-pct">{habit.progress_percent}%</span>
+              <span className="hcard-progress-detail">
+                {habit.remaining_value}{habit.target_type === "duration" ? " min" : ""} remaining
+              </span>
+            </>
+          )}
+        </div>
+        <div className="hcard-track" aria-hidden="true">
+          <div
+            className="hcard-fill"
+            style={{ width: `${habit.is_session ? sessionProgress.percent : habit.progress_percent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="hcard-footer">
+        {habit.is_session ? (
+          <button className="hcard-focus-btn" onClick={() => onFocus(habit)}>
+            Start Focus Session
+          </button>
+        ) : (
+          <>
+            <div className="hcard-quick">
+              {getQuickValues(habit).map((v) => (
+                <button
+                  key={v}
+                  className="hcard-quick-btn"
+                  onClick={() => onQuick(habit, v)}
+                  disabled={isSubmitting}
+                >
+                  {formatQuickLabel(habit, v)}
+                </button>
+              ))}
+            </div>
+            <div className="hcard-custom">
+              <input
+                type="number"
+                min="1"
+                value={customValues[habit.id] || ""}
+                onChange={(e) => onCustomChange(habit.id, e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && onCustomSubmit(habit)}
+                placeholder={habit.target_type === "duration" ? "Custom min" : "Custom value"}
+                className="hcard-input"
+              />
+              <button
+                className="hcard-add-btn"
+                onClick={() => onCustomSubmit(habit)}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "…" : "Add"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </article>
+  );
+}
+
+/* ── Completed habit row ── */
+function DoneItem({ habit, onEdit, onDelete, onCategoryClick }) {
+  return (
+    <div className="done-item">
+      <div className="done-item-left">
+        <span className="done-check"><IconCheck /></span>
+        <div className="done-copy">
+          <strong>{habit.title}</strong>
+          <span>
+            {habit.is_session
+              ? `All ${habit.total_sessions} sessions`
+              : `${habit.completed_today_value}${habit.target_type === "duration" ? " min" : ""}`}
+            {" · "}
+            <span className="done-pts">{getHabitPoints(habit)} pts</span>
+          </span>
+        </div>
+      </div>
+      <div className="done-item-right">
+        <button
+          className="hcard-cat-tag"
+          style={{ background: `${getCategoryData(getHabitCategoryLabel(habit)).color}18`, color: getCategoryData(getHabitCategoryLabel(habit)).color, borderColor: `${getCategoryData(getHabitCategoryLabel(habit)).color}35` }}
+          onClick={() => onCategoryClick(getHabitCategoryLabel(habit))}
+        >
+          {getHabitCategoryLabel(habit)}
+        </button>
+        <button className="hcard-btn hcard-btn--edit" onClick={() => onEdit(habit)} title="Edit"><IconPencil /></button>
+        <button className="hcard-btn hcard-btn--delete" onClick={() => onDelete(habit.id)} title="Delete"><IconTrash /></button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main component ── */
 function Habit() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -86,12 +283,10 @@ function Habit() {
   const [showModal, setShowModal] = useState(false);
   const [editingHabit, setEditingHabit] = useState(null);
   const [focusHabit, setFocusHabit] = useState(null);
+
   const showTemporaryMessage = useCallback((nextMessage) => {
     setMessage(nextMessage);
-
-    window.setTimeout(() => {
-      setMessage("");
-    }, 2000);
+    window.setTimeout(() => setMessage(""), 2500);
   }, []);
 
   const handleLogout = useCallback(() => {
@@ -101,605 +296,241 @@ function Habit() {
 
   const fetchHabits = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl("/habits"), {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (res.status === 401) {
-        handleLogout();
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error("Failed to load habits");
-      }
-
-      const habitsData = await res.json();
-      setHabits(normalizeHabits(habitsData));
+      const res = await fetch(apiUrl("/habits"), { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 401) { handleLogout(); return; }
+      if (!res.ok) throw new Error("Failed to load habits");
+      setHabits(normalizeHabits(await res.json()));
     } catch (err) {
       console.error(err);
       setMessage("Failed to load habits");
     }
   }, [handleLogout, token]);
 
-  useEffect(() => {
-    fetchHabits();
-  }, [fetchHabits]);
+  useEffect(() => { fetchHabits(); }, [fetchHabits]);
+  useEffect(() => { setCurrentTab(initialTab); }, [initialTab]);
+  useEffect(() => { if (location.state?.category) setSelectedCategory(location.state.category); }, [location.state]);
 
-  useEffect(() => {
-    setCurrentTab(initialTab);
-  }, [initialTab]);
+  const activeHabits = useMemo(() => habits.filter((h) => h.is_due_today && !h.completed_today), [habits]);
+  const completedHabits = useMemo(() => habits.filter((h) => h.is_due_today && h.completed_today), [habits]);
+  const currentHabits = useMemo(() => currentTab === "active" ? activeHabits : completedHabits, [activeHabits, completedHabits, currentTab]);
+  const categories = useMemo(() => ["All", ...new Set(currentHabits.map(getHabitCategoryLabel))], [currentHabits]);
 
-  const activeHabits = useMemo(() => habits.filter((habit) => {
-    return habit.is_due_today && !habit.completed_today;
-  }), [habits]);
-
-  const completedHabits = useMemo(() => habits.filter((habit) => {
-    return habit.is_due_today && habit.completed_today;
-  }), [habits]);
-
-  const currentHabits = useMemo(
-    () => currentTab === "active" ? activeHabits : completedHabits,
-    [activeHabits, completedHabits, currentTab]
-  );
-  const categories = useMemo(() => [
-    "All",
-    ...new Set(currentHabits.map((habit) => getHabitCategoryLabel(habit)))
-  ], [currentHabits]);
-
-  const filterByCategory = useCallback(
-    (list) =>
-      selectedCategory === "All"
-        ? list
-        : list.filter(
-            (habit) =>
-              getHabitCategoryLabel(habit)?.toLowerCase().trim() ===
-              selectedCategory.toLowerCase().trim()
-          ),
+  const filterByCategory = useCallback((list) =>
+    selectedCategory === "All" ? list : list.filter((h) => getHabitCategoryLabel(h)?.toLowerCase().trim() === selectedCategory.toLowerCase().trim()),
     [selectedCategory]
   );
-  const filteredActiveHabits = filterByCategory(activeHabits);
-  const filteredCompletedHabits = filterByCategory(completedHabits);
+
+  const filteredActive = filterByCategory(activeHabits);
+  const filteredCompleted = filterByCategory(completedHabits);
+  const visibleHabits = currentTab === "active" ? filteredActive : filteredCompleted;
 
   useEffect(() => {
-    if (!categories.includes(selectedCategory)) {
-      setSelectedCategory("All");
-    }
+    if (!categories.includes(selectedCategory)) setSelectedCategory("All");
   }, [categories, selectedCategory]);
 
   const jumpToSection = useCallback(() => {
-    window.requestAnimationFrame(() => {
-      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    window.requestAnimationFrame(() => sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }, []);
 
-  const handleTabChange = (tab) => {
-    setCurrentTab(tab);
-    jumpToSection();
-  };
-
-  const handleSelectCategory = (nextCategory, tab = currentTab) => {
-    setSelectedCategory(nextCategory);
-    setCurrentTab(tab);
-    jumpToSection();
-  };
+  const handleTabChange = (tab) => { setCurrentTab(tab); jumpToSection(); };
+  const handleSelectCategory = (cat, tab = currentTab) => { setSelectedCategory(cat); setCurrentTab(tab); jumpToSection(); };
 
   const handleAddHabit = (habitData) => {
     if (isAddingHabit) return;
     setIsAddingHabit(true);
-
-    fetch(apiUrl("/habits"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(habitData)
-    })
-      .then((res) => {
-        if (res.status === 401) {
-          handleLogout();
-          return null;
-        }
-        if (!res.ok) throw new Error("Could not add habit");
-        return res.json();
-      })
-      .then((newHabit) => {
-        if (!newHabit) return;
-        setShowModal(false);
-        showTemporaryMessage("Habit added successfully");
-        return fetchHabits();
-      })
-      .catch((err) => {
-        console.error(err);
-        setMessage(err.message || "Error adding habit");
-      })
-      .finally(() => {
-        setIsAddingHabit(false);
-      });
+    fetch(apiUrl("/habits"), { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(habitData) })
+      .then((r) => { if (r.status === 401) { handleLogout(); return null; } if (!r.ok) throw new Error("Could not add habit"); return r.json(); })
+      .then((h) => { if (!h) return; setShowModal(false); showTemporaryMessage("Habit added!"); return fetchHabits(); })
+      .catch((e) => { console.error(e); setMessage(e.message || "Error adding habit"); })
+      .finally(() => setIsAddingHabit(false));
   };
 
   const deleteHabit = (id) => {
-    fetch(apiUrl(`/habits/${id}`), {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-      .then((res) => {
-        if (res.status === 401) {
-          handleLogout();
-          return null;
-        }
-
-        if (!res.ok) {
-          throw new Error("Delete failed");
-        }
-
-        setHabits((previous) => previous.filter((habit) => habit.id !== id));
-        showTemporaryMessage("Habit deleted");
-        return true;
-      })
-      .catch((err) => {
-        console.error(err);
-        showTemporaryMessage("Error deleting habit");
-      });
+    fetch(apiUrl(`/habits/${id}`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => { if (r.status === 401) { handleLogout(); return null; } if (!r.ok) throw new Error("Delete failed"); setHabits((p) => p.filter((h) => h.id !== id)); showTemporaryMessage("Habit deleted"); })
+      .catch((e) => { console.error(e); showTemporaryMessage("Error deleting habit"); });
   };
 
-  const handleEditHabit = (habit) => {
-    setEditingHabit(habit);
-    setShowModal(true);
-  };
+  const handleEditHabit = (habit) => { setEditingHabit(habit); setShowModal(true); };
 
   const handleUpdateHabit = (habitData) => {
     if (!editingHabit || isAddingHabit) return;
     setIsAddingHabit(true);
-
-    fetch(apiUrl(`/habits/${editingHabit.id}`), {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(habitData)
-    })
-      .then((res) => {
-        if (res.status === 401) {
-          handleLogout();
-          return null;
-        }
-
-        if (!res.ok) {
-          throw new Error("Could not update habit");
-        }
-
-        return res.json();
-      })
-      .then((updatedHabit) => {
-        if (!updatedHabit) return;
-        setEditingHabit(null);
-        setShowModal(false);
-        showTemporaryMessage("Habit updated successfully");
-        return fetchHabits();
-      })
-      .catch((err) => {
-        console.error(err);
-        setMessage(err.message || "Error updating habit");
-      })
-      .finally(() => {
-        setIsAddingHabit(false);
-      });
+    fetch(apiUrl(`/habits/${editingHabit.id}`), { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(habitData) })
+      .then((r) => { if (r.status === 401) { handleLogout(); return null; } if (!r.ok) throw new Error("Could not update habit"); return r.json(); })
+      .then((h) => { if (!h) return; setEditingHabit(null); setShowModal(false); showTemporaryMessage("Habit updated!"); return fetchHabits(); })
+      .catch((e) => { console.error(e); setMessage(e.message || "Error updating habit"); })
+      .finally(() => setIsAddingHabit(false));
   };
 
   const submitProgress = (habit, value) => {
-    const parsedValue = Number(value);
-
-    if (!parsedValue || parsedValue < 0) {
-      setMessage("Enter a valid progress value");
-      return;
-    }
-
+    const parsed = Number(value);
+    if (!parsed || parsed < 0) { setMessage("Enter a valid progress value"); return; }
     setSubmittingHabitId(habit.id);
-
-    fetch(apiUrl("/logs"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        habit_id: habit.id,
-        value_completed: parsedValue
-      })
-    })
-      .then((res) => {
-        if (res.status === 401) {
-          handleLogout();
-          return null;
-        }
-
-        if (!res.ok) {
-          throw new Error("Failed to update habit");
-        }
-
-        return res.json();
-      })
+    fetch(apiUrl("/logs"), { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ habit_id: habit.id, value_completed: parsed }) })
+      .then((r) => { if (r.status === 401) { handleLogout(); return null; } if (!r.ok) throw new Error("Failed to update habit"); return r.json(); })
       .then((result) => {
-        if (!result) {
-          return;
-        }
-
-        setCustomValues((previous) => ({
-          ...previous,
-          [habit.id]: ""
-        }));
-
-        showTemporaryMessage(
-          `${habit.title} updated by ${parsedValue}${habit.target_type === "duration" ? " min" : ""}`
-        );
-
+        if (!result) return;
+        setCustomValues((p) => ({ ...p, [habit.id]: "" }));
+        showTemporaryMessage(`${habit.title} +${parsed}${habit.target_type === "duration" ? " min" : ""}`);
         return fetchHabits();
       })
-      .catch((err) => {
-        console.error(err);
-        setMessage(err.message || "Could not update progress");
-      })
-      .finally(() => {
-        setSubmittingHabitId(null);
-      });
+      .catch((e) => { console.error(e); setMessage(e.message || "Could not update progress"); })
+      .finally(() => setSubmittingHabitId(null));
   };
 
-  const handleCustomValueChange = (habitId, value) => {
-    setCustomValues((previous) => ({
-      ...previous,
-      [habitId]: value
-    }));
-  };
+  const handleCustomValueChange = (habitId, value) => setCustomValues((p) => ({ ...p, [habitId]: value }));
+  const handleCustomSubmit = (habit) => submitProgress(habit, customValues[habit.id]);
 
-  const handleCustomSubmit = (habit) => {
-    submitProgress(habit, customValues[habit.id]);
-  };
+  const totalToday = activeHabits.length + completedHabits.length;
+  const doneToday = completedHabits.length;
+  const overallPct = totalToday > 0 ? Math.round((doneToday / totalToday) * 100) : 0;
 
-  const visibleHabits =
-    currentTab === "active" ? filteredActiveHabits : filteredCompletedHabits;
-  useEffect(() => {
-    if (location.state?.category) {
-      setSelectedCategory(location.state.category);
-    }
-  }, [location.state]);
   return (
     <div className="habits-shell">
       <div className="habits-frame">
-        <div className="habits-topbar">
-          <div>
-            <h2 className="habits-title">My Habits</h2>
 
-            <p className="habits-subtitle">
-              Create a new habit and track your progress💪
-            </p>
+        {/* ── Page header ── */}
+        <header className="habits-header">
+          <div className="habits-header-left">
+            <h1 className="habits-title">My Habits</h1>
+            <p className="habits-subtitle">Build momentum one rep at a time.</p>
           </div>
-          <button
-            className="habits-nav-button"
-            onClick={() => navigate("/dashboard")}
-          >
-            Go to dashboard
+          <div className="habits-header-right">
+            <div className="habits-today-badge">
+              <span className="habits-today-pct">{overallPct}%</span>
+              <span className="habits-today-label">{doneToday}/{totalToday} done today</span>
+            </div>
+            <button className="habits-nav-button" onClick={() => navigate("/dashboard")}>Dashboard</button>
+          </div>
+        </header>
+
+        {/* ── Toast message ── */}
+        {message && (
+          <div className="habits-toast" role="status">{message}</div>
+        )}
+
+        {/* ── New habit button ── */}
+        <div className="habits-new-wrap">
+          <button className="habits-new-btn" onClick={() => setShowModal(true)}>
+            <IconPlus /> New Habit
           </button>
         </div>
 
-        {message && <p className="habits-message">{message}</p>}
+        {/* ── Modal ── */}
+        {showModal && (
+          <CreateHabitModal
+            onClose={() => { setShowModal(false); setEditingHabit(null); }}
+            onAddHabit={handleAddHabit}
+            onEditHabit={handleUpdateHabit}
+            initialHabit={editingHabit}
+          />
+        )}
 
-       
-
+        {/* ── Main section ── */}
         <section ref={sectionRef} className="habits-section">
-          
-          <div style={{ display: 'flex', justifyContent: 'flex-start', margin: '12px 0 32px' }}>
-            <button className="habits-new-btn" onClick={() => setShowModal(true)}>
-              <span className="habits-new-btn-plus">+</span> New Habit
-            </button>
-          </div>
 
-          {showModal && (
-            <CreateHabitModal
-              onClose={() => {
-                setShowModal(false);
-                setEditingHabit(null);
-              }}
-              onAddHabit={handleAddHabit}
-              onEditHabit={handleUpdateHabit}
-              initialHabit={editingHabit}
-            />
-          )}
-
-          <div className="habits-section-header">
-            <h3>{currentTab === "active" ? "Active habits" : "Completed today"}</h3>
-            <span>
+          {/* Tab + count header */}
+          <div className="habits-section-top">
+            <div className="habits-tabs">
+              <button
+                className={`habits-tab${currentTab === "active" ? " is-active" : ""}`}
+                onClick={() => handleTabChange("active")}
+              >
+                Active
+                <span className="habits-tab-count">{activeHabits.length}</span>
+              </button>
+              <button
+                className={`habits-tab${currentTab === "completed" ? " is-active" : ""}`}
+                onClick={() => handleTabChange("completed")}
+              >
+                Completed
+                <span className="habits-tab-count">{completedHabits.length}</span>
+              </button>
+            </div>
+            <span className="habits-section-meta">
               {currentTab === "active"
-                ? `${filteredActiveHabits.length} left today`
-                : `${filteredCompletedHabits.length} done`}
+                ? `${filteredActive.length} left today`
+                : `${filteredCompleted.length} done`}
             </span>
           </div>
 
-          <div className="habits-tab-row habits-tab-row-spaced">
-            <button
-              className={`habits-tab-button ${currentTab === "active" ? "is-active" : ""}`}
-              onClick={() => handleTabChange("active")}
-            >
-              Active
-              <span>{activeHabits.length}</span>
-            </button>
-            <button
-              className={`habits-tab-button ${currentTab === "completed" ? "is-active" : ""}`}
-              onClick={() => handleTabChange("completed")}
-            >
-              Completed
-              <span>{completedHabits.length}</span>
-            </button>
-          </div>
-
-          <div className="habit-category-row">
-            {categories.map((cat) => {
-              const catData = cat === "All" ? { color: "#6b7280" } : getCategoryData(cat);
-              const isSelected = selectedCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  className={`habit-category-filter ${isSelected ? "is-active" : ""}`}
-                  style={isSelected ? { backgroundColor: catData.color, color: "#fff", borderColor: catData.color } : {}}
-                  onClick={() => handleSelectCategory(cat)}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
-
-          {currentTab === "active" ? (
-            <>
-              {visibleHabits.length === 0 ? (
-                <p className="habit-empty-state">
-                  {selectedCategory === "All"
-                    ? "No active habits left today."
-                    : `No active habits in ${selectedCategory}.`}
-                </p>
-              ) : (
-                <div className="habit-card-grid">
-                  {visibleHabits.map((habit) => {
-                    const sessionProgress = getSessionProgress(habit);
-
-                    return (
-                    <article key={habit.id} className="habit-card group relative">
-                      <div className="habit-card-header">
-                        <div>
-                          <h4>{habit.title}</h4>
-
-                          {habit.is_session ? (
-                            <p>
-                              {habit.total_sessions} sessions | {habit.focus_time} min focus | {habit.break_time} min break
-                            </p>
-                          ) : (
-                            <p>
-                              {habit.target_type === "duration" ? "Minutes" : "Count"} target:{" "}
-                              {habit.target_value}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="habit-card-actions-top">
-                          <div className="habit-card-actions-hover">
-                            <button
-                              onClick={() => handleEditHabit(habit)}
-                              className="habit-action-btn edit-btn"
-                              title="Edit Habit"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil">
-                                <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
-                                <path d="m15 5 4 4"/>
-                              </svg>
-                            </button>
-
-                            <button
-                              onClick={() => deleteHabit(habit.id)}
-                              className="habit-action-btn delete-btn"
-                              title="Delete Habit"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2">
-                                <path d="M3 6h18"/>
-                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                                <line x1="10" x2="10" y1="11" y2="17"/>
-                                <line x1="14" x2="14" y1="11" y2="17"/>
-                              </svg>
-                            </button>
-                          </div>
-                          <button
-                            className="habit-category-button habit-category-under-actions"
-                            onClick={() =>
-                              handleSelectCategory(getHabitCategoryLabel(habit), "active")
-                            }
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              backgroundColor: `${getCategoryData(getHabitCategoryLabel(habit)).color}15`,
-                              color: getCategoryData(getHabitCategoryLabel(habit)).color,
-                              border: `1px solid ${getCategoryData(getHabitCategoryLabel(habit)).color}30`
-                            }}
-                          >
-                            {getHabitCategoryLabel(habit)}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="habit-meta">
-                        <span>+ {getHabitPoints(habit)}</span>
-                        {habit.is_session ? (
-                          <span>Session habit</span>
-                        ) : (
-                          <>
-                            <span>Time: {formatScheduleTime(habit.scheduled_time)}</span>
-                            <span>Repeat: {habit.repeat}</span>
-                            {habit.repeat === "custom" && (
-                              <span>Days: {habit.days?.join(", ")}</span>
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      {habit.is_session ? (
-                        <div className="habit-progress-block">
-                          <div className="habit-progress-row">
-                            <strong>
-                              Sessions completed: {sessionProgress.completed} / {sessionProgress.total}
-                            </strong>
-                            <span>Remaining: {sessionProgress.remaining}</span>
-                          </div>
-                          <div className="habit-progress-track" aria-hidden="true">
-                            <div
-                              className="habit-progress-fill"
-                              style={{ width: `${sessionProgress.percent}%` }}
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="habit-progress-block">
-                          <div className="habit-progress-row">
-                            <strong>{habit.progress_percent}% done</strong>
-                            <span>
-                              Remaining: {habit.remaining_value}
-                              {habit.target_type === "duration" ? " min" : ""}
-                            </span>
-                          </div>
-                          <div className="habit-progress-track" aria-hidden="true">
-                            <div
-                              className="habit-progress-fill"
-                              style={{ width: `${habit.progress_percent}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="habit-actions">
-                        {habit.is_session ? (
-                          <button
-                            className="habit-session-button"
-                            onClick={() => setFocusHabit(habit)}
-                          >
-                            Start Focus
-                          </button>
-                        ) : (
-                          <>
-                            <div className="habit-quick-actions">
-                              {getQuickValues(habit).map((value) => (
-                                <button
-                                  key={value}
-                                  className="habit-quick-button"
-                                  onClick={() => submitProgress(habit, value)}
-                                  disabled={submittingHabitId === habit.id}
-                                >
-                                  {formatQuickLabel(habit, value)}
-                                </button>
-                              ))}
-                            </div>
-
-                            <div className="habit-custom-row">
-                              <input
-                                type="number"
-                                min="1"
-                                value={customValues[habit.id] || ""}
-                                onChange={(event) =>
-                                  handleCustomValueChange(habit.id, event.target.value)
-                                }
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") {
-                                    handleCustomSubmit(habit);
-                                  }
-                                }}
-                                placeholder={
-                                  habit.target_type === "duration"
-                                    ? "Custom minutes"
-                                    : "Custom value"
-                                }
-                              />
-                              <button
-                                className="habits-primary-button"
-                                onClick={() => handleCustomSubmit(habit)}
-                                disabled={submittingHabitId === habit.id}
-                              >
-                                {submittingHabitId === habit.id ? "Saving..." : "Add"}
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </article>
-                    );
-                  })}
-                </div>
-              )}
-
-            </>
-          ) : visibleHabits.length === 0 ? (
-            <div className="habit-done-list">
-              <p className="habit-empty-state">
-                {selectedCategory === "All"
-                  ? "Nothing completed yet. First win is next."
-                  : `Nothing completed yet in ${selectedCategory}.`}
-              </p>
+          {/* Category filters */}
+          {categories.length > 1 && (
+            <div className="habits-cats">
+              {categories.map((cat) => {
+                const catData = cat === "All" ? { color: "#6b7280" } : getCategoryData(cat);
+                const isSelected = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    className={`habits-cat-pill${isSelected ? " is-active" : ""}`}
+                    style={isSelected ? { background: catData.color, color: "#fff", borderColor: catData.color } : {}}
+                    onClick={() => handleSelectCategory(cat)}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
             </div>
-          ) : (
-            <div className="habit-done-list">
-              {visibleHabits.map((habit) => (
-                <div key={habit.id} className="habit-done-item">
-                  <div className="habit-done-copy">
-                    <strong>{habit.title}</strong>
-                    {habit.is_session ? (
-                      <span>Completed all {habit.total_sessions} sessions</span>
-                    ) : (
-                      <span>
-                        Finished with {habit.completed_today_value}
-                        {habit.target_type === "duration" ? " min" : ""}
-                      </span>
-                    )}
-                    <span> {getHabitPoints(habit)} points</span>
-                  </div>
-                  
-                  <div className="habit-done-actions">
-                    <button
-                      className="habit-category-button"
-                      onClick={() =>
-                        handleSelectCategory(getHabitCategoryLabel(habit), "completed")
-                      }
-                    >
-                      {getHabitCategoryLabel(habit)}
-                    </button>
-                    <button
-                      onClick={() => handleEditHabit(habit)}
-                      className="habit-action-btn edit-btn"
-                      title="Edit Habit"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deleteHabit(habit.id)}
-                      className="habit-action-btn delete-btn"
-                      title="Delete Habit"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+          )}
+
+          {/* Active habits grid */}
+          {currentTab === "active" && (
+            visibleHabits.length === 0 ? (
+              <div className="habits-empty">
+                <div className="habits-empty-icon">✓</div>
+                <p>{selectedCategory === "All" ? "All caught up for today!" : `Nothing active in ${selectedCategory}.`}</p>
+              </div>
+            ) : (
+              <div className="habit-card-grid">
+                {visibleHabits.map((habit) => (
+                  <HabitCard
+                    key={habit.id}
+                    habit={habit}
+                    submittingHabitId={submittingHabitId}
+                    customValues={customValues}
+                    onEdit={handleEditHabit}
+                    onDelete={deleteHabit}
+                    onQuick={submitProgress}
+                    onCustomChange={handleCustomValueChange}
+                    onCustomSubmit={handleCustomSubmit}
+                    onFocus={setFocusHabit}
+                    onCategoryClick={(cat) => handleSelectCategory(cat, "active")}
+                  />
+                ))}
+              </div>
+            )
+          )}
+
+          {/* Completed list */}
+          {currentTab === "completed" && (
+            visibleHabits.length === 0 ? (
+              <div className="habits-empty">
+                <div className="habits-empty-icon">○</div>
+                <p>{selectedCategory === "All" ? "Nothing completed yet. First win is next." : `Nothing completed yet in ${selectedCategory}.`}</p>
+              </div>
+            ) : (
+              <div className="habits-done-list">
+                {visibleHabits.map((habit) => (
+                  <DoneItem
+                    key={habit.id}
+                    habit={habit}
+                    onEdit={handleEditHabit}
+                    onDelete={deleteHabit}
+                    onCategoryClick={(cat) => handleSelectCategory(cat, "completed")}
+                  />
+                ))}
+              </div>
+            )
           )}
         </section>
       </div>
 
       {focusHabit && (
-        <FocusSessionModal 
-          habit={focusHabit} 
-          onClose={() => setFocusHabit(null)} 
+        <FocusSessionModal
+          habit={focusHabit}
+          onClose={() => setFocusHabit(null)}
           onSessionComplete={() => fetchHabits()}
         />
       )}
