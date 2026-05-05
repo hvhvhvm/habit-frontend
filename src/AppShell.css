@@ -1,5 +1,5 @@
 /* ── Reset / tokens ─────────────────────────────────────────── */
-:root {
+.app-shell {
   --sidebar-w: 240px;
   --sidebar-w-collapsed: 68px;
   --sidebar-bg: #ffffff;
