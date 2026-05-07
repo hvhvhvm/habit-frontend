@@ -111,7 +111,13 @@ function IconCheck() {
     </svg>
   );
 }
+function getProgressPercent(habit) {
+  if (habit.is_session) {
+    return getSessionProgress(habit).percent;
+  }
 
+  return Number(habit.progress_percent) || 0;
+}
 /* ── Habit card ── */
 function HabitCard({ habit, submittingHabitId, customValues, onEdit, onDelete, onQuick, onCustomChange, onCustomSubmit, onFocus, onCategoryClick }) {
   const sessionProgress = getSessionProgress(habit);
@@ -363,6 +369,24 @@ function Habit() {
       .finally(() => setIsAddingHabit(false));
   };
 
+  const categorySummary = useMemo(() => {
+    const todayHabits = [...activeHabits, ...completedHabits];
+    const grouped = new Map();
+    todayHabits.forEach((habit) => {
+      const category = getHabitCategoryLabel(habit);
+      if (!grouped.has(category)) grouped.set(category, []);
+      grouped.get(category).push(habit);
+    });
+
+    return Array.from(grouped.entries())
+      .map(([category, items]) => {
+        const avgPercent = Math.round(items.reduce((sum, h) => sum + getProgressPercent(h), 0) / Math.max(items.length, 1));
+        const done = items.filter((h) => h.completed_today).length;
+        return { category, avgPercent, done, total: items.length };
+      })
+      .sort((a, b) => b.avgPercent - a.avgPercent)
+      .slice(0, 4);
+  }, [activeHabits, completedHabits]);
   const submitProgress = (habit, value) => {
     const parsed = Number(value);
     if (!parsed || parsed < 0) { setMessage("Enter a valid progress value"); return; }
@@ -409,7 +433,27 @@ function Habit() {
         {message && (
           <div className="habits-toast" role="status">{message}</div>
         )}
-
+        {categorySummary.length > 0 && (
+          <section className="habits-summary-grid">
+            {categorySummary.map((item) => {
+              const meta = getCategoryData(item.category);
+              return (
+                <article key={item.category} className="habits-summary-card">
+                  <div className="habits-summary-ring" style={{
+                                                  "--ring-color": meta.color,
+                                                  "--ring-percent": `${item.avgPercent}%`
+                                                }}>
+                    <span>{item.avgPercent}%</span>
+                  </div>
+                  <div className="habits-summary-copy">
+                    <strong>{item.category}</strong>
+                    <span>{item.done}/{item.total} done</span>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        )}
         {/* ── New habit button ── */}
         <div className="habits-new-wrap">
           <button className="habits-new-btn" onClick={() => setShowModal(true)}>

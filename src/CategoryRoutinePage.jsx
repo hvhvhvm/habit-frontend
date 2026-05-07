@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiUrl } from "./api";
+import { getCategoryData } from "./CategoryConfig";
 import "./CategoryRoutinePage.css";
 
 function getCompletionValue(habit) {
@@ -23,11 +24,13 @@ export default function CategoryRoutinePage() {
   const [isSubmitting, setIsSubmitting] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [expandedHabitId, setExpandedHabitId] = useState(null);
-  const [newSubHabitTitle, setNewSubHabitTitle] = useState("");
+  const [subHabitDrafts, setSubHabitDrafts] = useState({});
   const [isAddingSubHabit, setIsAddingSubHabit] = useState(null);
+  const [actionError, setActionError] = useState("");
 
   const fetchRoutineData = useCallback(async () => {
     try {
+      setError("");
       const res = await fetch(apiUrl(`/dashboard/category/${encodeURIComponent(categoryName)}`), {
         headers: {
           Authorization: `Bearer ${token}`
@@ -42,8 +45,10 @@ export default function CategoryRoutinePage() {
       
       const payload = await res.json();
       setData(payload);
+      return payload;
     } catch (err) {
       setError(err.message);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -58,6 +63,7 @@ export default function CategoryRoutinePage() {
     if (habit.completed_today || isSubmitting) return;
 
     try {
+      setActionError("");
       setIsSubmitting(habit.id);
       const res = await fetch(apiUrl("/logs"), {
         method: "POST",
@@ -78,13 +84,11 @@ export default function CategoryRoutinePage() {
       }
       if (!res.ok) throw new Error("Failed to complete habit");
 
-      // Refresh the page data
-      await fetchRoutineData();
+      // Refresh page and compute feedback from fresh values
+      const refreshed = await fetchRoutineData();
+      const activeHabitsHere = refreshed?.habits?.filter((h) => h.is_due_today) || [];
+      const completedCount = activeHabitsHere.filter((h) => h.completed_today).length;
 
-      // Show micro-feedback
-      const activeHabitsHere = data?.habits?.filter(h => h.is_due_today) || [];
-      const completedCount = activeHabitsHere.filter(h => h.completed_today).length + 1;
-      
       if (completedCount >= activeHabitsHere.length) {
         setFeedbackMessage("Routine complete 🎉");
       } else {
@@ -95,7 +99,7 @@ export default function CategoryRoutinePage() {
 
     } catch (err) {
       console.error(err);
-      alert("Error completing habit");
+      setActionError("Could not complete this habit. Please try again.");
     } finally {
       setIsSubmitting(null);
     }
@@ -103,9 +107,11 @@ export default function CategoryRoutinePage() {
 
   const handleAddSubHabit = async (e, habitId) => {
     e.preventDefault();
-    if (!newSubHabitTitle.trim()) return;
+    const title = (subHabitDrafts[habitId] || "").trim();
+    if (!title) return;
 
     try {
+      setActionError("");
       setIsAddingSubHabit(habitId);
       const res = await fetch(apiUrl(`/habits/${habitId}/subhabits`), {
         method: "POST",
@@ -113,16 +119,16 @@ export default function CategoryRoutinePage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ title: newSubHabitTitle })
+        body: JSON.stringify({ title })
       });
 
       if (!res.ok) throw new Error("Failed to add sub-habit");
 
-      setNewSubHabitTitle("");
+      setSubHabitDrafts((prev) => ({ ...prev, [habitId]: "" }));
       await fetchRoutineData();
     } catch (err) {
       console.error(err);
-      alert("Error adding sub-habit");
+      setActionError("Could not add sub-habit. Please try again.");
     } finally {
       setIsAddingSubHabit(null);
     }
@@ -130,6 +136,7 @@ export default function CategoryRoutinePage() {
 
   const handleToggleSubHabit = async (subHabitId) => {
     try {
+      setActionError("");
       const res = await fetch(apiUrl(`/subhabits/${subHabitId}/toggle`), {
         method: "POST",
         headers: {
@@ -142,7 +149,7 @@ export default function CategoryRoutinePage() {
       await fetchRoutineData();
     } catch (err) {
       console.error(err);
-      alert("Error toggling sub-habit");
+      setActionError("Could not update sub-habit. Please try again.");
     }
   };
 
@@ -150,6 +157,7 @@ export default function CategoryRoutinePage() {
     if (!window.confirm("Delete this sub-habit?")) return;
 
     try {
+      setActionError("");
       const res = await fetch(apiUrl(`/subhabits/${subHabitId}`), {
         method: "DELETE",
         headers: {
@@ -162,16 +170,19 @@ export default function CategoryRoutinePage() {
       await fetchRoutineData();
     } catch (err) {
       console.error(err);
-      alert("Error deleting sub-habit");
+      setActionError("Could not delete sub-habit. Please try again.");
     }
   };
 
   if (loading) {
+    const categoryData = getCategoryData(categoryName);
     return (
-      <div className="routine-page-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-        <div style={{ textAlign: "center", opacity: 0.7 }}>
-          <h2 style={{ color: "#9ca3af", fontWeight: 500 }}>Gathering your {categoryName} routine...</h2>
-          <p style={{ color: "#6b7280", marginTop: "8px" }}>Just a moment</p>
+      <div className="routine-page-shell">
+        <div className="routine-state-card">
+          <h2 className="routine-state-title" style={{ color: categoryData.color }}>
+            Gathering your {categoryName} routine...
+          </h2>
+          <p className="routine-state-copy">Just a moment.</p>
         </div>
       </div>
     );
@@ -188,6 +199,7 @@ export default function CategoryRoutinePage() {
     );
   }
 
+  const categoryData = getCategoryData(categoryName);
   const activeHabits = data?.habits?.filter(h => h.is_due_today) || [];
   const activeCompleted = activeHabits.filter(h => h.completed_today).length;
   const firstUncompletedIndex = activeHabits.findIndex(h => !h.completed_today);
@@ -198,7 +210,9 @@ export default function CategoryRoutinePage() {
         
         <header className="routine-header">
           <div>
-            <h1 className="routine-brand">{categoryName} Routine</h1>
+            <h1 className="routine-brand" style={{ "--routine-accent": categoryData.color }}>
+              {categoryData.icon} {categoryName} Routine
+            </h1>
             {feedbackMessage && (
               <p className="routine-feedback-msg">{feedbackMessage}</p>
             )}
@@ -218,6 +232,7 @@ export default function CategoryRoutinePage() {
             <span className="routine-stat-value">{activeHabits.length > 0 ? `${activeCompleted}/${activeHabits.length}` : "0"}</span>
           </div>
         </section>
+        {actionError && <p className="routine-action-error">{actionError}</p>}
 
         {activeHabits.length === 0 ? (
           <div className="routine-empty">
@@ -295,8 +310,8 @@ export default function CategoryRoutinePage() {
                           <input 
                             type="text" 
                             placeholder="Add a step..." 
-                            value={newSubHabitTitle}
-                            onChange={(e) => setNewSubHabitTitle(e.target.value)}
+                            value={subHabitDrafts[habit.id] || ""}
+                            onChange={(e) => setSubHabitDrafts((prev) => ({ ...prev, [habit.id]: e.target.value }))}
                             className="routine-subhabit-input"
                           />
                           <button 

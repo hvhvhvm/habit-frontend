@@ -7,7 +7,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 
 /* ── Tokens ── */
-.habits-shell {
+:root {
   --bg-shell:       #0e0c0a;
   --bg-frame:       #151210;
   --bg-card:        #1a1612;
@@ -82,18 +82,88 @@
   font-weight: 700;
   line-height: 0.92;
   letter-spacing: -0.03em;
-
-  color: #f0e8da;
+  background: linear-gradient(
+    90deg,
+    #1f5c46 0%,
+    #d6b36a 55%,
+    #f3d38b 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .habits-subtitle {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 300;
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.62);
   letter-spacing: 0.01em;
 }
+.habits-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 16px;
+}
+.habits-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
 
+.habits-summary-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(240, 182, 87, 0.45);
+  box-shadow: 0 8px 22px rgba(215, 154, 63, 0.18);
+}
+
+.habits-summary-ring {
+  --ring-color: var(--accent);
+  --ring-percent: 0%;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(
+    var(--ring-color) var(--ring-percent),
+    rgba(255,255,255,0.22) var(--ring-percent)
+  );
+  position: relative;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.habits-summary-ring::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: #14110f;
+}
+
+.habits-summary-ring span {
+  position: relative;
+  z-index: 1;
+  color: #D6B36A;
+}
+
+.habits-summary-copy strong {
+  display: block;
+  font-size: 0.92rem;
+  color: #3FAF7C;
+}
+
+.habits-summary-copy span {
+  color: rgba(255,255,255,0.58);
+  font-size: 0.76rem;
+}
 .habits-header-right {
   display: flex;
   align-items: center;
@@ -269,7 +339,7 @@
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: #D6B36A;
 }
 
 /* ── Category pills ── */
@@ -337,6 +407,7 @@
   border-color: var(--border-hover);
   background: var(--bg-card-hover);
   transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(214, 179, 106, 0.08);
 }
 
 /* Card top */
@@ -362,13 +433,11 @@
   font-size: 1.3rem;
   font-weight: 500;
   line-height: 1.2;
- 
+  color: #E8D8B0;
   letter-spacing: -0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #e7dbc7;
-  text-shadow: 0 1px 8px rgba(201, 144, 58, 0.05);
 }
 
 .hcard-cat-tag {

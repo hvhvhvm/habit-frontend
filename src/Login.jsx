@@ -9,9 +9,35 @@ function Login() {
     const navigate = useNavigate();
 
     useEffect(() => {
-      if (localStorage.getItem("token")) {
-        navigate("/dashboard", { replace: true });
+      const token = localStorage.getItem("token");
+      if (!token) {
+        return;
       }
+
+      let cancelled = false;
+      async function validateToken() {
+        try {
+          const res = await fetch(apiUrl("/auth/me"), {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (!cancelled && res.ok) {
+            navigate("/dashboard", { replace: true });
+            return;
+          }
+        } catch {
+          // Ignore transient network issues and keep the user on login.
+        }
+
+        if (!cancelled) {
+          localStorage.removeItem("token");
+        }
+      }
+
+      validateToken();
+      return () => {
+        cancelled = true;
+      };
     }, [navigate]);
 
     async function handleLogin(event) {
