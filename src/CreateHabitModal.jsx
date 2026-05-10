@@ -4,7 +4,15 @@ import { categoryMap } from './CategoryConfig';
 
 const weekDays = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
-export default function CreateHabitModal({ onClose, onAddHabit, onEditHabit, initialHabit = null }) {
+export default function CreateHabitModal({
+  onClose,
+  onAddHabit,
+  onEditHabit,
+  initialHabit = null,
+  routines = [],
+  initialRoutineId = null,
+  initialTimeBlock = "default"
+}) {
   const isEditMode = Boolean(initialHabit);
   const initialCategoryIsStandard = Object.keys(categoryMap).includes(initialHabit?.category || 'Productivity');
   const defaultCategory = initialHabit?.category ? (initialCategoryIsStandard ? initialHabit.category : 'Custom') : 'Productivity';
@@ -14,6 +22,8 @@ export default function CreateHabitModal({ onClose, onAddHabit, onEditHabit, ini
   const [customCategory, setCustomCategory] = useState(!initialCategoryIsStandard ? initialHabit.category : '');
   const [points, setPoints] = useState(initialHabit?.points ?? 10);
   const [showPoints, setShowPoints] = useState(false);
+  const [timeBlock, setTimeBlock] = useState(initialHabit?.time_block || initialTimeBlock || "default");
+  const [routineId, setRoutineId] = useState(initialHabit?.routine_id || initialRoutineId || "");
   const [type, setType] = useState(initialHabit?.target_type || 'count');
   const [target, setTarget] = useState(initialHabit?.target_value || 1);
   const [repeat, setRepeat] = useState(initialHabit?.repeat || 'daily');
@@ -43,6 +53,8 @@ export default function CreateHabitModal({ onClose, onAddHabit, onEditHabit, ini
       target_type: isSession ? "count" : type,
       target_value: isSession ? Number(totalSessions) : Number(target),
       category: category === 'Custom' ? (customCategory.trim() || 'Custom') : category,
+      time_block: routineId ? "default" : (timeBlock || "default"),
+      routine_id: routineId ? Number(routineId) : null,
       points: Math.max(Number(points) || 0, 0),
       scheduled_time: isSession ? null : (time || null),
       repeat: isSession ? "daily" : repeat,
@@ -113,7 +125,70 @@ export default function CreateHabitModal({ onClose, onAddHabit, onEditHabit, ini
               />
             </div>
           )}
+                    <label>
+          Routine <span className="optional">(optional)</span>
+        </label>
 
+           
+              
+            <div className="chm-routine-grid">
+
+            <button
+              type="button"
+              className={`chm-routine-btn ${!routineId && timeBlock === "default" ? "active default" : ""}`}
+              onClick={() => {
+                setRoutineId("");
+                setTimeBlock("default");
+              }}
+            >
+              Default
+            </button>
+
+            <button
+              type="button"
+              className={`chm-routine-btn ${!routineId && timeBlock === "morning" ? "active morning" : ""}`}
+              onClick={() => {
+                setRoutineId("");
+                setTimeBlock("morning");
+              }}
+            >
+              🌅 Morning
+            </button>
+
+            <button
+              type="button"
+              className={`chm-routine-btn ${!routineId && timeBlock === "evening" ? "active evening" : ""}`}
+              onClick={() => {
+                setRoutineId("");
+                setTimeBlock("evening");
+              }}
+            >
+              🌆 Evening
+            </button>
+
+            <button
+              type="button"
+              className={`chm-routine-btn ${!routineId && timeBlock === "night" ? "active night" : ""}`}
+              onClick={() => {
+                setRoutineId("");
+                setTimeBlock("night");
+              }}
+            >
+              🌙 Night
+            </button>
+
+            {routines.map((routine) => (
+              <button
+                key={routine.id}
+                type="button"
+                className={`chm-routine-btn ${Number(routineId) === routine.id ? "active custom" : ""}`}
+                onClick={() => setRoutineId(routine.id)}
+              >
+                {routine.emoji} {routine.name}
+              </button>
+            ))}
+
+            </div>
           <div className="chm-field chm-points-field">
             <label>Difficulty / Points</label>
               <p style={{ marginBottom: '8px', fontSize: '1rem' }}>

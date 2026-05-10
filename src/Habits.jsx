@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Habits.css";
 import CreateHabitModal from "./CreateHabitModal";
@@ -278,9 +278,12 @@ function Habit() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const sectionRef = useRef(null);
+  
   const initialTab = location.state?.tab === "completed" ? "completed" : "active";
   const [currentTab, setCurrentTab] = useState(initialTab);
+  
   const [habits, setHabits] = useState([]);
+  const [routines, setRoutines] = useState([]);
   const [message, setMessage] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [customValues, setCustomValues] = useState({});
@@ -289,6 +292,13 @@ function Habit() {
   const [showModal, setShowModal] = useState(false);
   const [editingHabit, setEditingHabit] = useState(null);
   const [focusHabit, setFocusHabit] = useState(null);
+  const [viewMode, setViewMode] = useState(location.state?.viewMode === "routine" ? "routine" : "all");
+  const [showRoutineForm, setShowRoutineForm] = useState(false);
+  const [routineDraft, setRoutineDraft] = useState({ name: "", emoji: "✨" });
+  const [isCreatingRoutine, setIsCreatingRoutine] = useState(false);
+  const [selectedRoutineId, setSelectedRoutineId] = useState("default");
+  const [prefillRoutineId, setPrefillRoutineId] = useState(null);
+  const [prefillTimeBlock, setPrefillTimeBlock] = useState("default");
 
   const showTemporaryMessage = useCallback((nextMessage) => {
     setMessage(nextMessage);
@@ -299,7 +309,35 @@ function Habit() {
     localStorage.removeItem("token");
     navigate("/login");
   }, [navigate]);
+  const fetchRoutines = useCallback(async () => {
+    try {
 
+      const res = await fetch(
+        apiUrl("/routines"),
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (res.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch routines");
+      }
+
+      const data = await res.json();
+
+      setRoutines(data);
+
+    } catch (err) {
+      console.error(err);
+    }
+  }, [handleLogout, token]);
   const fetchHabits = useCallback(async () => {
     try {
       const res = await fetch(apiUrl("/habits"), { headers: { Authorization: `Bearer ${token}` } });
@@ -312,8 +350,16 @@ function Habit() {
     }
   }, [handleLogout, token]);
 
-  useEffect(() => { fetchHabits(); }, [fetchHabits]);
+  useEffect(() => {
+      fetchHabits();
+      fetchRoutines();
+    }, [fetchHabits, fetchRoutines]);
   useEffect(() => { setCurrentTab(initialTab); }, [initialTab]);
+  useEffect(() => {
+    if (location.state?.viewMode === "routine") {
+      setViewMode("routine");
+    }
+  }, [location.state]);
   useEffect(() => { if (location.state?.category) setSelectedCategory(location.state.category); }, [location.state]);
 
   const activeHabits = useMemo(() => habits.filter((h) => h.is_due_today && !h.completed_today), [habits]);
@@ -346,9 +392,37 @@ function Habit() {
     setIsAddingHabit(true);
     fetch(apiUrl("/habits"), { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(habitData) })
       .then((r) => { if (r.status === 401) { handleLogout(); return null; } if (!r.ok) throw new Error("Could not add habit"); return r.json(); })
-      .then((h) => { if (!h) return; setShowModal(false); showTemporaryMessage("Habit added!"); return fetchHabits(); })
+      .then((h) => { if (!h) return; setShowModal(false); setPrefillRoutineId(null); setPrefillTimeBlock("default"); showTemporaryMessage("Habit added!"); return fetchHabits(); })
       .catch((e) => { console.error(e); setMessage(e.message || "Error adding habit"); })
       .finally(() => setIsAddingHabit(false));
+  };
+
+  const handleCreateRoutine = async (event) => {
+    event.preventDefault();
+    const name = routineDraft.name.trim();
+    if (!name || isCreatingRoutine) return;
+
+    try {
+      setIsCreatingRoutine(true);
+      const res = await fetch(apiUrl("/routines"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name, emoji: routineDraft.emoji.trim() || "✨" })
+      });
+      if (res.status === 401) { handleLogout(); return; }
+      if (!res.ok) throw new Error("Could not create routine");
+      const routine = await res.json();
+      setRoutines((prev) => [...prev, routine]);
+      setSelectedRoutineId(String(routine.id));
+      setRoutineDraft({ name: "", emoji: "✨" });
+      setShowRoutineForm(false);
+      showTemporaryMessage("Routine created!");
+    } catch (err) {
+      console.error(err);
+      setMessage(err.message || "Error creating routine");
+    } finally {
+      setIsCreatingRoutine(false);
+    }
   };
 
   const deleteHabit = (id) => {
@@ -357,7 +431,7 @@ function Habit() {
       .catch((e) => { console.error(e); showTemporaryMessage("Error deleting habit"); });
   };
 
-  const handleEditHabit = (habit) => { setEditingHabit(habit); setShowModal(true); };
+  const handleEditHabit = (habit) => { setPrefillRoutineId(null); setEditingHabit(habit); setShowModal(true); };
 
   const handleUpdateHabit = (habitData) => {
     if (!editingHabit || isAddingHabit) return;
@@ -409,7 +483,54 @@ function Habit() {
   const totalToday = activeHabits.length + completedHabits.length;
   const doneToday = completedHabits.length;
   const overallPct = totalToday > 0 ? Math.round((doneToday / totalToday) * 100) : 0;
+    const defaultHabits = visibleHabits.filter(
+    (habit) => !habit.routine_id && habit.time_block === "default"
+  );
 
+  const morningHabits = visibleHabits.filter(
+    (habit) => !habit.routine_id && habit.time_block === "morning"
+  );
+
+  const eveningHabits = visibleHabits.filter(
+    (habit) => !habit.routine_id && habit.time_block === "evening"
+  );
+
+  const nightHabits = visibleHabits.filter(
+    (habit) => !habit.routine_id && habit.time_block === "night"
+  );
+  const routineSections = routines.map((routine) => ({
+    ...routine,
+    habits: visibleHabits.filter((habit) => Number(habit.routine_id) === Number(routine.id))
+  }));
+  const selectedRoutine = routines.find((routine) => String(routine.id) === String(selectedRoutineId));
+  const selectedRoutineHabits = selectedRoutine
+    ? visibleHabits.filter((habit) => Number(habit.routine_id) === Number(selectedRoutine.id))
+    : visibleHabits.filter((habit) => !habit.routine_id && habit.time_block === selectedRoutineId);
+  const openHabitModalForRoutine = (routineId = null, timeBlock = "default") => {
+    setEditingHabit(null);
+    setPrefillRoutineId(routineId);
+    setPrefillTimeBlock(routineId ? "default" : timeBlock);
+    setShowModal(true);
+  };
+  const renderHabitCards = (items) => (
+    <div className="habit-card-grid">
+      {items.map((habit) => (
+        <HabitCard
+          key={habit.id}
+          habit={habit}
+          submittingHabitId={submittingHabitId}
+          customValues={customValues}
+          onEdit={handleEditHabit}
+          onDelete={deleteHabit}
+          onQuick={submitProgress}
+          onCustomChange={handleCustomValueChange}
+          onCustomSubmit={handleCustomSubmit}
+          onFocus={setFocusHabit}
+          onCategoryClick={(cat) => handleSelectCategory(cat, "active")}
+        />
+      ))}
+    </div>
+  );
   return (
     <div className="habits-shell">
       <div className="habits-frame">
@@ -456,7 +577,7 @@ function Habit() {
         )}
         {/* ── New habit button ── */}
         <div className="habits-new-wrap">
-          <button className="habits-new-btn" onClick={() => setShowModal(true)}>
+          <button className="habits-new-btn" onClick={() => openHabitModalForRoutine(null, "default")}>
             <IconPlus /> New Habit
           </button>
         </div>
@@ -464,13 +585,32 @@ function Habit() {
         {/* ── Modal ── */}
         {showModal && (
           <CreateHabitModal
-            onClose={() => { setShowModal(false); setEditingHabit(null); }}
+            onClose={() => { setShowModal(false); setEditingHabit(null); setPrefillRoutineId(null); setPrefillTimeBlock("default"); }}
             onAddHabit={handleAddHabit}
             onEditHabit={handleUpdateHabit}
             initialHabit={editingHabit}
+            routines={routines}
+            initialRoutineId={prefillRoutineId}
+            initialTimeBlock={prefillTimeBlock}
           />
         )}
+        <div className="view-switcher">
 
+          <button
+            className={viewMode === "all" ? "active" : ""}
+            onClick={() => setViewMode("all")}
+          >
+            All
+          </button>
+
+          <button
+            className={viewMode === "routine" ? "active" : ""}
+            onClick={() => setViewMode("routine")}
+          >
+            Routines
+          </button>
+
+        </div>
         {/* ── Main section ── */}
         <section ref={sectionRef} className="habits-section">
 
@@ -519,34 +659,230 @@ function Habit() {
             </div>
           )}
 
-          {/* Active habits grid */}
-          {currentTab === "active" && (
-            visibleHabits.length === 0 ? (
-              <div className="habits-empty">
-                <div className="habits-empty-icon">✓</div>
-                <p>{selectedCategory === "All" ? "All caught up for today!" : `Nothing active in ${selectedCategory}.`}</p>
-              </div>
-            ) : (
-              <div className="habit-card-grid">
-                {visibleHabits.map((habit) => (
-                  <HabitCard
-                    key={habit.id}
-                    habit={habit}
-                    submittingHabitId={submittingHabitId}
-                    customValues={customValues}
-                    onEdit={handleEditHabit}
-                    onDelete={deleteHabit}
-                    onQuick={submitProgress}
-                    onCustomChange={handleCustomValueChange}
-                    onCustomSubmit={handleCustomSubmit}
-                    onFocus={setFocusHabit}
-                    onCategoryClick={(cat) => handleSelectCategory(cat, "active")}
-                  />
-                ))}
-              </div>
-            )
-          )}
+        {/* Active habits grid */}
+        {currentTab === "active" && (
+          visibleHabits.length === 0 && viewMode !== "routine" ? (
+            <div className="habits-empty">
+              <div className="habits-empty-icon">✓</div>
+              <p>
+                {selectedCategory === "All"
+                  ? "All caught up for today!"
+                  : `Nothing active in ${selectedCategory}.`}
+              </p>
+            </div>
+          ) : (
 
+            <>
+            
+              {viewMode === "all" && (
+                <>
+
+                  {defaultHabits.length > 0 && (
+                    <>
+                      <h2 className="routine-title">Default</h2>
+
+                      <div className="habit-card-grid">
+                        {defaultHabits.map((habit) => (
+                          <HabitCard
+                            key={habit.id}
+                            habit={habit}
+                            submittingHabitId={submittingHabitId}
+                            customValues={customValues}
+                            onEdit={handleEditHabit}
+                            onDelete={deleteHabit}
+                            onQuick={submitProgress}
+                            onCustomChange={handleCustomValueChange}
+                            onCustomSubmit={handleCustomSubmit}
+                            onFocus={setFocusHabit}
+                            onCategoryClick={(cat) =>
+                              handleSelectCategory(cat, "active")
+                            }
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {morningHabits.length > 0 && (
+                    <>
+                      <h2 className="routine-title">🌅 Morning Routine</h2>
+
+                      <div className="habit-card-grid">
+                        {morningHabits.map((habit) => (
+                          <HabitCard
+                            key={habit.id}
+                            habit={habit}
+                            submittingHabitId={submittingHabitId}
+                            customValues={customValues}
+                            onEdit={handleEditHabit}
+                            onDelete={deleteHabit}
+                            onQuick={submitProgress}
+                            onCustomChange={handleCustomValueChange}
+                            onCustomSubmit={handleCustomSubmit}
+                            onFocus={setFocusHabit}
+                            onCategoryClick={(cat) =>
+                              handleSelectCategory(cat, "active")
+                            }
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {eveningHabits.length > 0 && (
+                    <>
+                      <h2 className="routine-title">🌆 Evening Routine</h2>
+
+                      <div className="habit-card-grid">
+                        {eveningHabits.map((habit) => (
+                          <HabitCard
+                            key={habit.id}
+                            habit={habit}
+                            submittingHabitId={submittingHabitId}
+                            customValues={customValues}
+                            onEdit={handleEditHabit}
+                            onDelete={deleteHabit}
+                            onQuick={submitProgress}
+                            onCustomChange={handleCustomValueChange}
+                            onCustomSubmit={handleCustomSubmit}
+                            onFocus={setFocusHabit}
+                            onCategoryClick={(cat) =>
+                              handleSelectCategory(cat, "active")
+                            }
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {nightHabits.length > 0 && (
+                    <>
+                      <h2 className="routine-title">🌙 Night Routine</h2>
+
+                      <div className="habit-card-grid">
+                        {nightHabits.map((habit) => (
+                          <HabitCard
+                            key={habit.id}
+                            habit={habit}
+                            submittingHabitId={submittingHabitId}
+                            customValues={customValues}
+                            onEdit={handleEditHabit}
+                            onDelete={deleteHabit}
+                            onQuick={submitProgress}
+                            onCustomChange={handleCustomValueChange}
+                            onCustomSubmit={handleCustomSubmit}
+                            onFocus={setFocusHabit}
+                            onCategoryClick={(cat) =>
+                              handleSelectCategory(cat, "active")
+                            }
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {routineSections.filter((routine) => routine.habits.length > 0).map((routine) => (
+                    <Fragment key={routine.id}>
+                      <h2 className="routine-title">{routine.emoji} {routine.name}</h2>
+                      {renderHabitCards(routine.habits)}
+                    </Fragment>
+                  ))}
+
+                </>
+              )}
+
+              {viewMode === "routine" && (
+                <div className="routine-view">
+
+                  <button className="create-routine-btn" onClick={() => setShowRoutineForm((value) => !value)}>
+                    + Create Routine
+                  </button>
+
+                  {showRoutineForm && (
+                    <form className="routine-create-form" onSubmit={handleCreateRoutine}>
+                      <input
+                        className="routine-emoji-input"
+                        value={routineDraft.emoji}
+                        onChange={(event) => setRoutineDraft((prev) => ({ ...prev, emoji: event.target.value }))}
+                        maxLength={4}
+                        aria-label="Routine emoji"
+                      />
+                      <input
+                        className="routine-name-input"
+                        value={routineDraft.name}
+                        onChange={(event) => setRoutineDraft((prev) => ({ ...prev, name: event.target.value }))}
+                        placeholder="Routine name"
+                      />
+                      <button className="routine-save-btn" disabled={isCreatingRoutine}>
+                        {isCreatingRoutine ? "Saving..." : "Save"}
+                      </button>
+                    </form>
+                  )}
+
+                  <div className="routine-grid">
+                    {[
+                      { id: "default", emoji: "•", name: "Default", count: defaultHabits.length },
+                      { id: "morning", emoji: "☀", name: "Morning", count: morningHabits.length },
+                      { id: "evening", emoji: "◐", name: "Evening", count: eveningHabits.length }
+                    ].filter((routine) => routine.count > 0 || selectedRoutineId === routine.id).map((routine) => (
+                      <button
+                        key={routine.id}
+                        className={`routine-card routine-card-button ${selectedRoutineId === routine.id ? "is-selected" : ""}`}
+                        onClick={() => setSelectedRoutineId(routine.id)}
+                      >
+                        <h3 className="routine-card-title">{routine.emoji} {routine.name}</h3>
+                        <span>{routine.count} habits</span>
+                      </button>
+                    ))}
+
+                    {routines.filter((routine) => (
+                      visibleHabits.some((habit) => Number(habit.routine_id) === Number(routine.id)) ||
+                      String(selectedRoutineId) === String(routine.id)
+                    )).map((routine) => (
+                      <button
+                        key={routine.id}
+                        className={`routine-card routine-card-button ${String(selectedRoutineId) === String(routine.id) ? "is-selected" : ""}`}
+                        onClick={() => setSelectedRoutineId(String(routine.id))}
+                      >
+                        <h3 className="routine-card-title">
+                          {routine.emoji} {routine.name}
+                        </h3>
+                        <span>{visibleHabits.filter((habit) => Number(habit.routine_id) === Number(routine.id)).length} habits</span>
+                      </button>
+                    ))}
+
+                  </div>
+
+                  <div className="routine-detail-panel">
+                    <div className="routine-detail-top">
+                      <div>
+                        <h2 className="routine-title">
+                          {selectedRoutine ? `${selectedRoutine.emoji} ${selectedRoutine.name}` : "Routine Habits"}
+                        </h2>
+                        <p>{selectedRoutineHabits.length} habits scheduled today</p>
+                      </div>
+                      <button
+                        className="routine-add-habit-btn"
+                        onClick={() => openHabitModalForRoutine(selectedRoutine?.id || null, selectedRoutineId)}
+                      >
+                        Add Habit
+                      </button>
+                    </div>
+                    {selectedRoutineHabits.length > 0 ? renderHabitCards(selectedRoutineHabits) : (
+                      <div className="routine-empty-row">
+                        <span>No habits here yet.</span>
+                        <button onClick={() => openHabitModalForRoutine(selectedRoutine?.id || null, selectedRoutineId)}>Create one</button>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              )}
+
+            </>
+
+          )
+        )}
           {/* Completed list */}
           {currentTab === "completed" && (
             visibleHabits.length === 0 ? (

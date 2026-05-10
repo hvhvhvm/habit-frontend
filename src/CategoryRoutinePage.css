@@ -1,6 +1,8 @@
 .routine-page-shell {
   min-height: 100vh;
-  background-color: #0f111a;
+  background:
+  radial-gradient(circle at top, rgba(99,102,241,0.15), transparent 30%),
+  #0b1020;
   color: #fff;
   padding: 40px 20px;
   display: flex;

@@ -323,7 +323,59 @@
 }
 
 
+.chm-routine-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
 
+.chm-routine-btn {
+  background: #1E295E;
+  border: 1px solid #2f3c7a;
+  color: #dbe4ff;
+  padding: 14px 12px;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chm-routine-btn:hover {
+  transform: translateY(-2px);
+  border-color: #4c63b6;
+}
+
+.chm-routine-btn.active.morning {
+  background: rgba(255, 193, 7, 0.18);
+  border-color: #FFC107;
+  color: #fff;
+}
+
+.chm-routine-btn.active.evening {
+  background: rgba(255, 140, 0, 0.18);
+  border-color: #FF9800;
+  color: #fff;
+}
+
+.chm-routine-btn.active.night {
+  background: rgba(156, 39, 176, 0.18);
+  border-color: #9C27B0;
+  color: #fff;
+}
+
+.chm-routine-btn.active.default {
+  background: rgba(148, 163, 184, 0.18);
+  border-color: #94a3b8;
+  color: #fff;
+}
+
+.chm-routine-btn.active.custom {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: #818cf8;
+  color: #fff;
+}
 .chm-focus-field {
   flex: 1;
   display: flex;

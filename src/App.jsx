@@ -11,6 +11,7 @@ import Onboarding from "./onboarding";
 import AppShell from "./AppShell";
 import { apiUrl } from "./api";
 import OnePercent from "./1percent";
+import RoutineDetailPage from "./routinedetail";
 
 function normalizeHabitTargetType(targetType) {
   return targetType === "duration" || targetType === "minutes" ? "duration" : "count";
@@ -186,6 +187,17 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/routines/:routineId"
+        element={
+        <ProtectedRoute>
+          <RoutineDetailPage />
+        </ProtectedRoute>
+        }
+
+
+      />
+      
 
       <Route
         path="/category-routine/:categoryName"
