@@ -1,10 +1,18 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Habits.css";
+import CreateRoutineModal from "./CreateRoutineModal";
 import CreateHabitModal from "./CreateHabitModal";
 import FocusSessionModal from "./FocusSessionModal";
 import { getCategoryData } from "./CategoryConfig";
 import { apiUrl } from "./api";
+
+const TIME_BLOCK_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "morning", label: "Morning" },
+  { id: "evening", label: "Evening" },
+  { id: "night", label: "Night" },
+];
 
 function getQuickValues(habit) {
   if (habit.target_type === "duration") {
@@ -46,6 +54,10 @@ function getSessionProgress(habit) {
   const remaining = Math.max(total - completed, 0);
   const percent = Math.min(Math.round((completed / total) * 100), 100);
   return { total, completed, remaining, percent };
+}
+
+function getHabitTimeBlock(habit) {
+  return habit.time_block || "default";
 }
 
 /* ── Small reusable icon components ── */
@@ -123,6 +135,7 @@ function HabitCard({ habit, submittingHabitId, customValues, onEdit, onDelete, o
   const sessionProgress = getSessionProgress(habit);
   const catData = getCategoryData(getHabitCategoryLabel(habit));
   const isSubmitting = submittingHabitId === habit.id;
+ 
 
   return (
     <article className="hcard">
@@ -289,6 +302,7 @@ function Habit() {
   const [customValues, setCustomValues] = useState({});
   const [submittingHabitId, setSubmittingHabitId] = useState(null);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
+  const [showRoutineModal, setShowRoutineModal] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingHabit, setEditingHabit] = useState(null);
   const [focusHabit, setFocusHabit] = useState(null);
@@ -296,7 +310,8 @@ function Habit() {
   const [showRoutineForm, setShowRoutineForm] = useState(false);
   const [routineDraft, setRoutineDraft] = useState({ name: "", emoji: "✨" });
   const [isCreatingRoutine, setIsCreatingRoutine] = useState(false);
-  const [selectedRoutineId, setSelectedRoutineId] = useState("default");
+  const [selectedRoutineId, setSelectedRoutineId] = useState("");
+  const [routineTimeFilter, setRoutineTimeFilter] = useState("all");
   const [prefillRoutineId, setPrefillRoutineId] = useState(null);
   const [prefillTimeBlock, setPrefillTimeBlock] = useState("default");
 
@@ -502,14 +517,41 @@ function Habit() {
     ...routine,
     habits: visibleHabits.filter((habit) => Number(habit.routine_id) === Number(routine.id))
   }));
-  const selectedRoutine = routines.find((routine) => String(routine.id) === String(selectedRoutineId));
-  const selectedRoutineHabits = selectedRoutine
-    ? visibleHabits.filter((habit) => Number(habit.routine_id) === Number(selectedRoutine.id))
-    : visibleHabits.filter((habit) => !habit.routine_id && habit.time_block === selectedRoutineId);
+  const routineCardData = useMemo(() => routines
+    .map((routine) => {
+      const routineHabits = visibleHabits.filter((habit) => Number(habit.routine_id) === Number(routine.id));
+      const filteredHabits = routineTimeFilter === "all"
+        ? routineHabits
+        : routineHabits.filter((habit) => getHabitTimeBlock(habit) === routineTimeFilter);
+
+      return {
+        ...routine,
+        habits: filteredHabits,
+        total: filteredHabits.length,
+      };
+    })
+    .filter((routine) => routine.total > 0),
+  [routines, routineTimeFilter, selectedRoutineId, visibleHabits]);
+  useEffect(() => {
+    if (viewMode !== "routine") return;
+    if (routineCardData.length === 0) {
+      if (selectedRoutineId) setSelectedRoutineId("");
+      return;
+    }
+    const selectedStillVisible = routineCardData.some((routine) => String(routine.id) === String(selectedRoutineId));
+    if (!selectedStillVisible) {
+      setSelectedRoutineId(String(routineCardData[0].id));
+    }
+  }, [routineCardData, selectedRoutineId, viewMode]);
   const openHabitModalForRoutine = (routineId = null, timeBlock = "default") => {
     setEditingHabit(null);
     setPrefillRoutineId(routineId);
-    setPrefillTimeBlock(routineId ? "default" : timeBlock);
+    if (routineId) {
+      const existingRoutineHabit = habits.find((habit) => Number(habit.routine_id) === Number(routineId));
+      setPrefillTimeBlock(existingRoutineHabit?.time_block || (routineTimeFilter === "all" ? "default" : routineTimeFilter) || "default");
+    } else {
+      setPrefillTimeBlock(timeBlock);
+    }
     setShowModal(true);
   };
   const renderHabitCards = (items) => (
@@ -592,6 +634,17 @@ function Habit() {
             routines={routines}
             initialRoutineId={prefillRoutineId}
             initialTimeBlock={prefillTimeBlock}
+          />
+        )}
+        {showRoutineModal && (
+          <CreateRoutineModal
+            token={token}
+            onClose={() => setShowRoutineModal(false)}
+            onCreated={() => {
+              fetchRoutines();
+              fetchHabits();
+              setShowRoutineModal(false);
+            }}
           />
         )}
         <div className="view-switcher">
@@ -781,12 +834,26 @@ function Habit() {
                     </>
                   )}
 
-                  {routineSections.filter((routine) => routine.habits.length > 0).map((routine) => (
-                    <Fragment key={routine.id}>
-                      <h2 className="routine-title">{routine.emoji} {routine.name}</h2>
-                      {renderHabitCards(routine.habits)}
-                    </Fragment>
-                  ))}
+                  {routineSections.some((routine) => routine.habits.length > 0) && (
+                    <>
+                      <h2 className="routine-title">Routines</h2>
+                      <div className="routine-grid">
+                        {routineSections.filter((routine) => routine.habits.length > 0).map((routine) => (
+                          <button
+                            key={routine.id}
+                            type="button"
+                            className="routine-card routine-card-button"
+                            onClick={() => navigate(`/routines/${routine.id}`, { state: { from: "habits" } })}
+                          >
+                            <h3 className="routine-card-title">
+                              {routine.emoji} {routine.name}
+                            </h3>
+                            <span>{routine.habits.length} {routine.habits.length === 1 ? "habit" : "habits"}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
 
                 </>
               )}
@@ -794,9 +861,12 @@ function Habit() {
               {viewMode === "routine" && (
                 <div className="routine-view">
 
-                  <button className="create-routine-btn" onClick={() => setShowRoutineForm((value) => !value)}>
-                    + Create Routine
-                  </button>
+                  <button
+                  className="create-routine-btn"
+                  onClick={() => setShowRoutineModal(true)}
+                >
+                  + Create Routine
+                </button>
 
                   {showRoutineForm && (
                     <form className="routine-create-form" onSubmit={handleCreateRoutine}>
@@ -819,61 +889,36 @@ function Habit() {
                     </form>
                   )}
 
-                  <div className="routine-grid">
-                    {[
-                      { id: "default", emoji: "•", name: "Default", count: defaultHabits.length },
-                      { id: "morning", emoji: "☀", name: "Morning", count: morningHabits.length },
-                      { id: "evening", emoji: "◐", name: "Evening", count: eveningHabits.length }
-                    ].filter((routine) => routine.count > 0 || selectedRoutineId === routine.id).map((routine) => (
+                  <div className="routine-filter-row" aria-label="Routine time filter">
+                    {TIME_BLOCK_FILTERS.map((filter) => (
                       <button
-                        key={routine.id}
-                        className={`routine-card routine-card-button ${selectedRoutineId === routine.id ? "is-selected" : ""}`}
-                        onClick={() => setSelectedRoutineId(routine.id)}
+                        key={filter.id}
+                        type="button"
+                        className={`routine-filter-pill ${routineTimeFilter === filter.id ? "is-active" : ""}`}
+                        onClick={() => setRoutineTimeFilter(filter.id)}
                       >
-                        <h3 className="routine-card-title">{routine.emoji} {routine.name}</h3>
-                        <span>{routine.count} habits</span>
+                        {filter.label}
                       </button>
                     ))}
+                  </div>
 
-                    {routines.filter((routine) => (
-                      visibleHabits.some((habit) => Number(habit.routine_id) === Number(routine.id)) ||
-                      String(selectedRoutineId) === String(routine.id)
-                    )).map((routine) => (
+                  <div className="routine-grid">
+                    {routineCardData.map((routine) => (
                       <button
                         key={routine.id}
                         className={`routine-card routine-card-button ${String(selectedRoutineId) === String(routine.id) ? "is-selected" : ""}`}
-                        onClick={() => setSelectedRoutineId(String(routine.id))}
+                        onClick={() => {
+                          setSelectedRoutineId(String(routine.id));
+                          navigate(`/routines/${routine.id}`, { state: { from: "habits" } });
+                        }}
                       >
                         <h3 className="routine-card-title">
                           {routine.emoji} {routine.name}
                         </h3>
-                        <span>{visibleHabits.filter((habit) => Number(habit.routine_id) === Number(routine.id)).length} habits</span>
+                        <span>{routine.total} {routine.total === 1 ? "habit" : "habits"}</span>
                       </button>
                     ))}
 
-                  </div>
-
-                  <div className="routine-detail-panel">
-                    <div className="routine-detail-top">
-                      <div>
-                        <h2 className="routine-title">
-                          {selectedRoutine ? `${selectedRoutine.emoji} ${selectedRoutine.name}` : "Routine Habits"}
-                        </h2>
-                        <p>{selectedRoutineHabits.length} habits scheduled today</p>
-                      </div>
-                      <button
-                        className="routine-add-habit-btn"
-                        onClick={() => openHabitModalForRoutine(selectedRoutine?.id || null, selectedRoutineId)}
-                      >
-                        Add Habit
-                      </button>
-                    </div>
-                    {selectedRoutineHabits.length > 0 ? renderHabitCards(selectedRoutineHabits) : (
-                      <div className="routine-empty-row">
-                        <span>No habits here yet.</span>
-                        <button onClick={() => openHabitModalForRoutine(selectedRoutine?.id || null, selectedRoutineId)}>Create one</button>
-                      </div>
-                    )}
                   </div>
 
                 </div>
@@ -914,6 +959,7 @@ function Habit() {
           onSessionComplete={() => fetchHabits()}
         />
       )}
+
     </div>
   );
 }

@@ -183,6 +183,31 @@
   background: rgba(79, 70, 229, 0.14);
 }
 
+.routine-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.routine-filter-pill {
+  border: 1px solid #252f45;
+  background: #121826;
+  color: rgba(248, 250, 252, 0.72);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.routine-filter-pill:hover,
+.routine-filter-pill.is-active {
+  background: #e8b46a;
+  border-color: #e8b46a;
+  color: #17120c;
+}
+
 .routine-grid {
   display: grid;
   gap: 16px;

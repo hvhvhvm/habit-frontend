@@ -16,6 +16,7 @@ import { getCategoryData } from "./CategoryConfig";
 import Heatmap from "./Heatmap";
 import ConsistencyHeatmap from "./ConsistencyHeatmap";
 import { apiUrl } from "./api";
+import CreateRoutineModal from "./CreateRoutineModal";
 
 import "./Dashboard.css";
 
@@ -128,7 +129,7 @@ function getHabitCategoryLabel(habit) {
 }
 
 function getHabitTimeBlock(habit) {
-  return habit.routine_id ? "routine" : (habit.time_block || "default");
+  return habit.time_block || "default";
 }
 
 function getRoutineFilterId(routineId) {
@@ -145,13 +146,14 @@ function Dashboard() {
   const [recentCompleted, setRecentCompleted] = useState([]);
   const [submittingHabitId, setSubmittingHabitId] = useState(null);
   const [focusFilter, setFocusFilter] = useState("all");
-  const [focusView, setFocusView] = useState("habits");
+  const [focusView, setFocusView] = useState("all");
   
   const navigate = useNavigate();
   const [user,setUser] = useState(null);
   const token = localStorage.getItem("token");
   const [heatmapData,setHeatmapData] = useState([]);
   const [isFirstVisit, setIsFirstVisit] = useState(false);
+  const [showRoutineModal, setShowRoutineModal] = useState(false);
 
 
   const categoryData = data?.categories?.map(c => {
@@ -297,6 +299,7 @@ function Dashboard() {
   }, [handleLogout, token]);
 
   const activeHabits = habits.filter((habit) => habit.is_due_today && !habit.completed_today);
+  const standaloneActiveHabits = activeHabits.filter((habit) => !habit.routine_id);
   const routineTabs = routines
     .map((routine) => ({
       id: getRoutineFilterId(routine.id),
@@ -306,28 +309,36 @@ function Dashboard() {
       count: activeHabits.filter((habit) => Number(habit.routine_id) === Number(routine.id)).length
     }))
     .filter((tab) => tab.count > 0);
+  const timeBlockSummary = [
+    { id: "morning", label: "Morning", icon: "☀️", gradient: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)", count: activeHabits.filter((habit) => getHabitTimeBlock(habit) === "morning").length },
+    { id: "evening", label: "Evening", icon: "🌆", gradient: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)", count: activeHabits.filter((habit) => getHabitTimeBlock(habit) === "evening").length },
+    { id: "night", label: "Night", icon: "🌙", gradient: "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)", count: activeHabits.filter((habit) => getHabitTimeBlock(habit) === "night").length },
+    { id: "default", label: "Constant", icon: "🔄", gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)", count: activeHabits.filter((habit) => getHabitTimeBlock(habit) === "default").length },
+  ];
   const focusTabs = [
     { id: "all", label: "All", count: activeHabits.length },
-    { id: "morning", label: "Morning", icon: "☀", count: activeHabits.filter((habit) => getHabitTimeBlock(habit) === "morning").length },
-    { id: "evening", label: "Evening", icon: "🌆", count: activeHabits.filter((habit) => getHabitTimeBlock(habit) === "evening").length },
-    { id: "night", label: "Night", icon: "☂", count: activeHabits.filter((habit) => getHabitTimeBlock(habit) === "night").length },
+    ...timeBlockSummary,
     ...routineTabs
   ].filter((tab) => tab.id === "all" || tab.count > 0);
   const visibleFocusHabits = focusFilter === "all"
-    ? activeHabits
+    ? standaloneActiveHabits
     : focusFilter.startsWith("routine-")
-      ? activeHabits.filter((habit) => getRoutineFilterId(habit.routine_id) === focusFilter)
-      : activeHabits.filter((habit) => getHabitTimeBlock(habit) === focusFilter);
-    const routineCards = routines.map((routine) => {
+      ? []
+      : standaloneActiveHabits.filter((habit) => getHabitTimeBlock(habit) === focusFilter);
+    const routineCards = routines
+      .map((routine) => {
 
       const routineHabits = activeHabits.filter(
         (habit) => Number(habit.routine_id) === Number(routine.id)
       );
+      const visibleRoutineHabits = focusFilter === "all"
+        ? routineHabits
+        : routineHabits.filter((habit) => getHabitTimeBlock(habit) === focusFilter);
 
       const completed =
-        routineHabits.filter((habit) => habit.completed_today).length;
+        visibleRoutineHabits.filter((habit) => habit.completed_today).length;
 
-      const total = routineHabits.length;
+      const total = visibleRoutineHabits.length;
 
       const progress =
         total > 0
@@ -339,9 +350,11 @@ function Dashboard() {
         total,
         completed,
         progress,
-        habits: routineHabits
+        habits: visibleRoutineHabits
       };
-    }).filter((routine) => routine.total > 0);
+    }).filter((routine) => {
+      return routine.total > 0;
+    });
 
   const handleCompleteHabit = async (habit) => {
     try {
@@ -482,6 +495,9 @@ function Dashboard() {
     month: "long",
     day: "numeric"
   });
+  
+
+  
   const displayName = name || user?.username || "there";
   const greetingTitle = isFirstVisit
     ? `Start your journey, ${displayName}`
@@ -551,7 +567,7 @@ function Dashboard() {
         <section className="dashboard-active-row">
         <aside className="dashboard-panel dashboard-active-card">
 
-          <div className="dashboard-focus-now-head">
+           <div className="dashboard-focus-now-head">
             <div>
               <span className="dashboard-stat-label">
                 Focus Now
@@ -560,15 +576,58 @@ function Dashboard() {
               <h2>What's your plan for today?</h2>
             </div>
 
-            <button
-              className="dashboard-routine-button"
-              type="button"
-              onClick={() => navigate("/habits", { state: { viewMode: "routine" } })}
-            >
-              View Routine Planner
-            </button>
+            <div className="dashboard-focus-head-actions">
+              <button
+                className="dashboard-routine-button"
+                type="button"
+                onClick={() => navigate("/habits", { state: { viewMode: "routine" } })}
+              >
+                View Routine Planner
+              </button>
+            </div>
           </div>
-                  <div className="dashboard-focus-view-switch">
+          <div className="dashboard-timeblock-grid" aria-label="Time block summary">
+            {timeBlockSummary.map((block) => (
+              <button
+                key={block.id}
+                className={`dashboard-timeblock-card ${focusFilter === block.id ? "is-active" : ""}`}
+                type="button"
+                onClick={() => {
+
+                      if (focusFilter === block.id) {
+
+                        setFocusFilter("all");
+                        setFocusView("all");
+
+                      } else {
+
+                        setFocusFilter(block.id);
+                        setFocusView("all");
+
+                      }
+
+                    }}
+              >
+                <div className="dashboard-timeblock-icon" style={{ background: block.gradient }}>
+                  <span>{block.icon}</span>
+                </div>
+                <div className="dashboard-timeblock-info">
+                  <strong>{block.label}</strong>
+                  <span className="dashboard-timeblock-count">{block.count}</span>
+                </div>
+                <small className="dashboard-timeblock-label">{block.count === 1 ? "habit" : "habits"}</small>
+              </button>
+            ))}
+          </div>
+             <div className="dashboard-focus-view-switch">
+            <button
+              className={`dashboard-view-btn ${
+                focusView === "all" ? "active" : ""
+              }`}
+              onClick={() => setFocusView("all")}
+            >
+              ✨ All
+            </button>
 
           <button
             className={`dashboard-view-btn ${
@@ -589,22 +648,139 @@ function Dashboard() {
           </button>
 
         </div>
-          <div className="dashboard-focus-tabs" aria-label="Focus filters">
-            {focusTabs.map((tab) => (
-              <button
-                key={tab.id}
-                className={`dashboard-focus-tab ${focusFilter === tab.id ? "is-active" : ""}`}
-                type="button"
-                onClick={() => setFocusFilter(tab.id)}
-              >
-                <span>{tab.icon}</span>
-                <strong>{tab.label}</strong>
-                {tab.id !== "all" && <small>{tab.count} habits</small>}
-              </button>
-            ))}
-          </div>
           
-          {focusView === "habits" && (
+
+          {focusFilter !== "all" && (
+            <div className="dashboard-focus-filter-bar">
+              <span>Showing: <strong>{timeBlockSummary.find(b => b.id === focusFilter)?.label || focusTabs.find(t => t.id === focusFilter)?.label || "All"}</strong></span>
+              <button className="dashboard-filter-clear" onClick={() => setFocusFilter("all")}>✕ Clear filter</button>
+            </div>
+          )}
+          
+          {focusView === "all" && (
+              <>
+
+                {/* HABITS */}
+
+                {(visibleFocusHabits.length > 0 || routineCards.length > 0) && (
+
+                  <div
+                    className="dashboard-focus-strip dashboard-focus-strip-mixed"
+                    aria-label="Active habits and routines to focus on"
+                  >
+
+                    {visibleFocusHabits.map((habit) => {
+
+                      const progress = getFocusProgress(habit);
+                      const category = getHabitCategoryLabel(habit);
+                      const sessionProgress = getSessionProgress(habit);
+
+                      return (
+
+                        <article
+                          key={habit.id}
+                          className="dashboard-focus-card"
+                          onClick={() => navigate("/habits")}
+                          style={{ cursor: "pointer" }}
+                        >
+
+                          <div className="dashboard-focus-card-top">
+                            <span>{category}</span>
+                            <h3>{habit.title}</h3>
+                          </div>
+
+                          <p className="dashboard-focus-progress-text">
+                            {progress.text}
+                          </p>
+
+                          <div
+                            className="dashboard-focus-progress-track"
+                            aria-hidden="true"
+                          >
+                            <div
+                              className="dashboard-focus-progress-fill"
+                              style={{
+                                width: `${progress.percent}%`
+                              }}
+                            />
+                          </div>
+
+                          <p className="dashboard-focus-copy">
+                            {sessionProgress.remaining > 0
+                              ? `${sessionProgress.remaining} left today`
+                              : "Almost complete 🔥"}
+                          </p>
+
+                          <button
+                            className="dashboard-focus-complete"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleCompleteHabit(habit);
+                            }}
+                            disabled={submittingHabitId === habit.id}
+                            type="button"
+                          >
+                            {submittingHabitId === habit.id ? "Saving..." : "Complete"}
+                          </button>
+
+                        </article>
+
+                      );
+
+                    })}
+
+                    {routineCards.map((routine) => (
+
+                      <article
+                        key={routine.id}
+                        className="dashboard-routine-card dashboard-routine-card-compact"
+                        onClick={() =>
+                          navigate(`/routines/${routine.id}`, { state: { from: "dashboard" } })
+                        }
+                      >
+
+                        <div className="dashboard-routine-card-top">
+
+                          <div>
+
+                            <span className="dashboard-routine-emoji">
+                              {routine.emoji}
+                            </span>
+
+                            <h3>{routine.name}</h3>
+
+                          </div>
+
+                          <span className="dashboard-routine-progress">
+                            {routine.progress}%
+                          </span>
+
+                        </div>
+
+                        <p>{routine.total} habits</p>
+
+                        <div className="dashboard-focus-progress-track">
+
+                          <div
+                            className="dashboard-focus-progress-fill"
+                            style={{
+                              width: `${routine.progress}%`
+                            }}
+                          />
+
+                        </div>
+
+                      </article>
+
+                    ))}
+
+                  </div>
+
+                )}
+
+              </>
+            )}
+            {focusView === "habits" && (
 
             visibleFocusHabits.length === 0 ? (
 
@@ -710,7 +886,7 @@ function Dashboard() {
                   key={routine.id}
                   className="dashboard-routine-card"
                   onClick={() =>
-                        navigate(`/routines/${routine.id}`)
+                        navigate(`/routines/${routine.id}`, { state: { from: "dashboard" } })
                       }
                 >
 
@@ -753,6 +929,20 @@ function Dashboard() {
                 </article>
 
               ))}
+
+              <button
+                className="dashboard-routine-card dashboard-routine-card-add"
+                type="button"
+                onClick={() => setShowRoutineModal(true)}
+              >
+                <div className="dashboard-routine-card-top">
+                  <div>
+                    <span className="dashboard-routine-emoji">+</span>
+                    <h3>Add Routine</h3>
+                  </div>
+                </div>
+                <p>Create a new routine</p>
+              </button>
 
             </div>
           )}
@@ -1050,6 +1240,27 @@ function Dashboard() {
           </article>
         </section>
       </div>
+
+      {showRoutineModal && (
+        <CreateRoutineModal
+          token={token}
+          onClose={() => setShowRoutineModal(false)}
+          onCreated={async () => {
+            setShowRoutineModal(false);
+            setMessage("Routine created! 🎉");
+            // Reload dashboard data
+            const headers = { Authorization: `Bearer ${token}` };
+            const [habitsRes, routinesRes, dashboardRes] = await Promise.all([
+              fetch(apiUrl("/dashboard/my-habits"), { headers }),
+              fetch(apiUrl("/routines"), { headers }),
+              fetch(apiUrl("/dashboard/"), { headers }),
+            ]);
+            if (habitsRes.ok) setHabits(await habitsRes.json());
+            if (routinesRes.ok) setRoutines(await routinesRes.json());
+            if (dashboardRes.ok) setData(await dashboardRes.json());
+          }}
+        />
+      )}
     </div>
   );
 }

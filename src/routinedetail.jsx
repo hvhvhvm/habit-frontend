@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { apiUrl } from "./api";
 
 import "./CategoryRoutinePage.css";
@@ -15,8 +15,13 @@ function getCompletionValue(habit) {
 
 export default function RoutineDetailPage() {
   const { routineId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const openedFromDashboard = location.state?.from === "dashboard";
+  const backLabel = openedFromDashboard ? "Dashboard" : "Habits";
+  const backPath = openedFromDashboard ? "/dashboard" : "/habits";
+  const backState = openedFromDashboard ? undefined : { viewMode: "routine" };
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -27,6 +32,9 @@ export default function RoutineDetailPage() {
   const [subHabitDrafts, setSubHabitDrafts] = useState({});
   const [isAddingSubHabit, setIsAddingSubHabit] = useState(null);
   const [actionError, setActionError] = useState("");
+  const [isAddingHabit, setIsAddingHabit] = useState(false);
+  const [habitTitle, setHabitTitle] = useState("");
+  const addHabitInputRef = useRef(null);
 
   const fetchRoutineData = useCallback(async () => {
     try {
@@ -58,6 +66,84 @@ export default function RoutineDetailPage() {
     if (!token) navigate("/login");
     else fetchRoutineData();
   }, [fetchRoutineData, navigate, token]);
+
+  const handleBack = () => {
+    navigate(backPath, backState ? { state: backState } : undefined);
+  };
+
+  const handleAddHabit = async (event) => {
+    event.preventDefault();
+    const title = habitTitle.trim();
+    if (!title || isAddingHabit) return;
+
+    try {
+      setActionError("");
+      setIsAddingHabit(true);
+      const res = await fetch(apiUrl("/habits"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title,
+          target_type: "count",
+          target_value: 1,
+          category: "Productivity",
+          time_block: data?.habits?.[0]?.time_block || "default",
+          routine_id: Number(routineId),
+          points: 10,
+          repeat: "daily",
+          days: [],
+          is_session: false,
+          focus_time: null,
+          break_time: null,
+          total_sessions: null,
+        }),
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+      if (!res.ok) throw new Error("Could not add habit");
+
+      setHabitTitle("");
+      await fetchRoutineData();
+    } catch (err) {
+      console.error(err);
+      setActionError(err.message || "Could not add habit to this routine.");
+    } finally {
+      setIsAddingHabit(false);
+    }
+  };
+
+  const handleDeleteHabit = async (habitId) => {
+    if (!window.confirm("Delete this habit?")) return;
+
+    try {
+      setActionError("");
+      const res = await fetch(apiUrl(`/habits/${habitId}`), {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+        return;
+      }
+      if (!res.ok) throw new Error("Could not delete habit");
+
+      await fetchRoutineData();
+    } catch (err) {
+      console.error(err);
+      setActionError("Could not delete this habit. Please try again.");
+    }
+  };
 
   const handleComplete = async (habit) => {
     if (habit.completed_today || isSubmitting) return;
@@ -193,7 +279,7 @@ export default function RoutineDetailPage() {
       <div className="routine-page-shell">
         <div className="routine-container">
           <p>Error: {error}</p>
-          <button className="routine-back-btn" onClick={() => navigate("/dashboard")}>Back to Dashboard</button>
+          <button className="routine-back-btn" onClick={handleBack}>Back to {backLabel}</button>
         </div>
       </div>
     );
@@ -221,9 +307,11 @@ export default function RoutineDetailPage() {
               <p className="routine-feedback-msg">{feedbackMessage}</p>
             )}
           </div>
-          <button className="routine-back-btn" onClick={() => navigate("/dashboard")}>
-            &larr; Dashboard
-          </button>
+          <div className="routine-header-actions">
+            <button className="routine-back-btn" onClick={handleBack}>
+              &larr; {backLabel}
+            </button>
+          </div>
         </header>
 
         <section className="routine-stats-card">
@@ -282,6 +370,18 @@ export default function RoutineDetailPage() {
                         {isCompleted && <span className="routine-badge-done"> (done)</span>}
                       </h3>
                       <span className="routine-expand-icon">{isExpanded ? "▲" : "▼"}</span>
+                      <button
+                        className="routine-habit-delete"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDeleteHabit(habit.id);
+                        }}
+                        aria-label={`Delete ${habit.title}`}
+                        title="Delete habit"
+                      >
+                        &times;
+                      </button>
                     </div>
                     {!isCompleted && (
                       <p className="routine-habit-meta">
@@ -336,6 +436,23 @@ export default function RoutineDetailPage() {
             })}
           </div>
         )}
+        <form className="routine-inline-add" onSubmit={handleAddHabit}>
+          <input
+            ref={addHabitInputRef}
+            type="text"
+            value={habitTitle}
+            onChange={(event) => setHabitTitle(event.target.value)}
+            placeholder="Add habit name..."
+            className="routine-inline-add-input"
+          />
+          <button
+            type="submit"
+            className="routine-inline-add-btn"
+            disabled={isAddingHabit || !habitTitle.trim()}
+          >
+            {isAddingHabit ? "Adding..." : "Add"}
+          </button>
+        </form>
       </div>
     </div>
   );

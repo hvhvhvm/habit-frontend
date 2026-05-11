@@ -53,7 +53,7 @@ export default function CreateHabitModal({
       target_type: isSession ? "count" : type,
       target_value: isSession ? Number(totalSessions) : Number(target),
       category: category === 'Custom' ? (customCategory.trim() || 'Custom') : category,
-      time_block: routineId ? "default" : (timeBlock || "default"),
+      time_block: timeBlock || "default",
       routine_id: routineId ? Number(routineId) : null,
       points: Math.max(Number(points) || 0, 0),
       scheduled_time: isSession ? null : (time || null),

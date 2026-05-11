@@ -193,7 +193,7 @@ export default function CategoryRoutinePage() {
       <div className="routine-page-shell">
         <div className="routine-container">
           <p>Error: {error}</p>
-          <button className="routine-back-btn" onClick={() => navigate("/dashboard")}>Back to Dashboard</button>
+          <button className="routine-back-btn" onClick={() => navigate("/habits", { state: { viewMode: "routine" } })}>Back to Habits</button>
         </div>
       </div>
     );
@@ -217,8 +217,8 @@ export default function CategoryRoutinePage() {
               <p className="routine-feedback-msg">{feedbackMessage}</p>
             )}
           </div>
-          <button className="routine-back-btn" onClick={() => navigate("/dashboard")}>
-            &larr; Dashboard
+          <button className="routine-back-btn" onClick={() => navigate("/habits", { state: { viewMode: "routine" } })}>
+            &larr; Habits
           </button>
         </header>
 
