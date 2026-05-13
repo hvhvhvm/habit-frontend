@@ -6,10 +6,10 @@ import "./AppShell.css";
 const menuItems = [
   { label: "Dashboard", to: "/dashboard", icon: "dashboard" },
   { label: "Habits", to: "/habits", icon: "habits" },
-  { label: "Momentum", to: "/dashboard#momentum", icon: "momentum" },
+  { label: "Momentum", to: "/momentum", icon: "momentum" },
   { label: "1% Better", to: "/1percent", icon: "better", badge: "New" },
   { label: "Insights", to: "/dashboard#insights", icon: "insights" },
-  { label: "AI Coach", icon: "coach" },
+  { label: "AI Coach", to: "/ai", icon: "coach" },
   { label: "Settings", icon: "settings" },
 ];
 

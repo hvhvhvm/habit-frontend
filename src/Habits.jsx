@@ -446,6 +446,19 @@ function Habit() {
       .catch((e) => { console.error(e); showTemporaryMessage("Error deleting habit"); });
   };
 
+  const deleteRoutine = (routineId, routineName) => {
+    if (!window.confirm(`Delete "${routineName}" and all its habits? This cannot be undone.`)) return;
+    fetch(apiUrl(`/routines/${routineId}`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => {
+        if (r.status === 401) { handleLogout(); return null; }
+        if (!r.ok) throw new Error("Delete failed");
+        showTemporaryMessage(`"${routineName}" routine deleted`);
+        fetchRoutines();
+        fetchHabits();
+      })
+      .catch((e) => { console.error(e); showTemporaryMessage("Error deleting routine"); });
+  };
+
   const handleEditHabit = (habit) => { setPrefillRoutineId(null); setEditingHabit(habit); setShowModal(true); };
 
   const handleUpdateHabit = (habitData) => {
@@ -839,17 +852,27 @@ function Habit() {
                       <h2 className="routine-title">Routines</h2>
                       <div className="routine-grid">
                         {routineSections.filter((routine) => routine.habits.length > 0).map((routine) => (
-                          <button
-                            key={routine.id}
-                            type="button"
-                            className="routine-card routine-card-button"
-                            onClick={() => navigate(`/routines/${routine.id}`, { state: { from: "habits" } })}
-                          >
-                            <h3 className="routine-card-title">
-                              {routine.emoji} {routine.name}
-                            </h3>
-                            <span>{routine.habits.length} {routine.habits.length === 1 ? "habit" : "habits"}</span>
-                          </button>
+                          <div key={routine.id} className="routine-card-wrapper">
+                            <button
+                              type="button"
+                              className="routine-card routine-card-button"
+                              onClick={() => navigate(`/routines/${routine.id}`, { state: { from: "habits" } })}
+                            >
+                              <h3 className="routine-card-title">
+                                {routine.emoji} {routine.name}
+                              </h3>
+                              <span>{routine.habits.length} {routine.habits.length === 1 ? "habit" : "habits"}</span>
+                            </button>
+                            <button
+                              className="routine-delete-btn"
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); deleteRoutine(routine.id, routine.name); }}
+                              title={`Delete ${routine.name} routine`}
+                              aria-label={`Delete ${routine.name} routine`}
+                            >
+                              <IconTrash />
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </>
@@ -904,19 +927,29 @@ function Habit() {
 
                   <div className="routine-grid">
                     {routineCardData.map((routine) => (
-                      <button
-                        key={routine.id}
-                        className={`routine-card routine-card-button ${String(selectedRoutineId) === String(routine.id) ? "is-selected" : ""}`}
-                        onClick={() => {
-                          setSelectedRoutineId(String(routine.id));
-                          navigate(`/routines/${routine.id}`, { state: { from: "habits" } });
-                        }}
-                      >
-                        <h3 className="routine-card-title">
-                          {routine.emoji} {routine.name}
-                        </h3>
-                        <span>{routine.total} {routine.total === 1 ? "habit" : "habits"}</span>
-                      </button>
+                      <div key={routine.id} className="routine-card-wrapper">
+                        <button
+                          className={`routine-card routine-card-button ${String(selectedRoutineId) === String(routine.id) ? "is-selected" : ""}`}
+                          onClick={() => {
+                            setSelectedRoutineId(String(routine.id));
+                            navigate(`/routines/${routine.id}`, { state: { from: "habits" } });
+                          }}
+                        >
+                          <h3 className="routine-card-title">
+                            {routine.emoji} {routine.name}
+                          </h3>
+                          <span>{routine.total} {routine.total === 1 ? "habit" : "habits"}</span>
+                        </button>
+                        <button
+                          className="routine-delete-btn"
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); deleteRoutine(routine.id, routine.name); }}
+                          title={`Delete ${routine.name} routine`}
+                          aria-label={`Delete ${routine.name} routine`}
+                        >
+                          <IconTrash />
+                        </button>
+                      </div>
                     ))}
 
                   </div>

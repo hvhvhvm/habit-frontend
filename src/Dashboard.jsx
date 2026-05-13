@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OneBetterGraph from "./OneBetterGraph";
+
 import {
   BarChart,
   Bar,
@@ -437,6 +438,31 @@ function Dashboard() {
       setSubmittingHabitId(null);
     }
   };
+  const deleteRoutine = async (routineId, routineName) => {
+    if (!window.confirm(`Delete "${routineName}" and all its habits? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(apiUrl(`/routines/${routineId}`), {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.status === 401) { handleLogout(); return; }
+      if (!res.ok) throw new Error("Delete failed");
+      setMessage(`"${routineName}" routine deleted`);
+      // Refresh routines and habits
+      const [habitsRes, routinesRes, dashboardRes] = await Promise.all([
+        fetch(apiUrl("/dashboard/my-habits"), { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(apiUrl("/routines"), { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(apiUrl("/dashboard/"), { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      if (habitsRes.ok) setHabits(await habitsRes.json());
+      if (routinesRes.ok) setRoutines(await routinesRes.json());
+      if (dashboardRes.ok) setData(await dashboardRes.json());
+    } catch (err) {
+      console.error(err);
+      setMessage("Error deleting routine");
+    }
+  };
+
   useEffect(() => {
     if (!user?.id) return;
 
@@ -731,46 +757,54 @@ function Dashboard() {
 
                     {routineCards.map((routine) => (
 
-                      <article
-                        key={routine.id}
-                        className="dashboard-routine-card dashboard-routine-card-compact"
-                        onClick={() =>
-                          navigate(`/routines/${routine.id}`, { state: { from: "dashboard" } })
-                        }
-                      >
-
-                        <div className="dashboard-routine-card-top">
-
-                          <div>
-
-                            <span className="dashboard-routine-emoji">
+                      <div key={routine.id} className="dashboard-routine-card-wrapper">
+                        <article
+                          className="dashboard-routine-card dashboard-routine-card-compact"
+                          onClick={() =>
+                            navigate(`/routines/${routine.id}`, { state: { from: "dashboard" } })
+                          }
+                        >
+                          <div className="drc-header">
+                            <div className="drc-emoji-badge">
                               {routine.emoji}
-                            </span>
-
-                            <h3>{routine.name}</h3>
-
+                            </div>
+                            <div className="drc-header-info">
+                              <h3 className="drc-name">{routine.name}</h3>
+                              <span className="drc-habit-count">{routine.total} {routine.total === 1 ? "habit" : "habits"}</span>
+                            </div>
                           </div>
 
-                          <span className="dashboard-routine-progress">
-                            {routine.progress}%
-                          </span>
+                          <div className="drc-stats-row">
+                            <span className="drc-stat-chip drc-stat-done">
+                              <span className="drc-stat-icon">✓</span>
+                              {routine.completed}/{routine.total}
+                            </span>
+                            <span className="drc-stat-chip drc-stat-pct">
+                              {routine.progress}%
+                            </span>
+                          </div>
 
-                        </div>
+                          <div className="drc-progress-section">
+                            <div className="drc-progress-track">
+                              <div className="drc-progress-fill" style={{ width: `${routine.progress}%` }} />
+                            </div>
+                          </div>
 
-                        <p>{routine.total} habits</p>
-
-                        <div className="dashboard-focus-progress-track">
-
-                          <div
-                            className="dashboard-focus-progress-fill"
-                            style={{
-                              width: `${routine.progress}%`
-                            }}
-                          />
-
-                        </div>
-
-                      </article>
+                          <div className="drc-footer">
+                            <span className="drc-open-label">Open routine</span>
+                            <span className="drc-arrow">→</span>
+                          </div>
+                        </article>
+                        <button
+                          className="dashboard-routine-delete-btn"
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); deleteRoutine(routine.id, routine.name); }}
+                          title={`Delete ${routine.name} routine`}
+                          aria-label={`Delete ${routine.name} routine`}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                        </button>
+                      </div>
 
                     ))}
 
@@ -882,51 +916,54 @@ function Dashboard() {
 
               {routineCards.map((routine) => (
 
-                <article
-                  key={routine.id}
-                  className="dashboard-routine-card"
-                  onClick={() =>
-                        navigate(`/routines/${routine.id}`, { state: { from: "dashboard" } })
-                      }
-                >
-
-                  <div className="dashboard-routine-card-top">
-
-                    <div>
-                      
-
-                      <span className="dashboard-routine-emoji">
+                <div key={routine.id} className="dashboard-routine-card-wrapper">
+                  <article
+                    className="dashboard-routine-card"
+                    onClick={() =>
+                          navigate(`/routines/${routine.id}`, { state: { from: "dashboard" } })
+                        }
+                  >
+                    <div className="drc-header">
+                      <div className="drc-emoji-badge drc-emoji-badge--large">
                         {routine.emoji}
-                      </span>
-
-                      <h3>{routine.name}</h3>
-                      
+                      </div>
+                      <div className="drc-header-info">
+                        <h3 className="drc-name">{routine.name}</h3>
+                        <span className="drc-habit-count">{routine.total} {routine.total === 1 ? "habit" : "habits"}</span>
+                      </div>
                     </div>
 
-                    <span className="dashboard-routine-progress">
-                      {routine.progress}%
-                    </span>
-                    
+                    <div className="drc-stats-row">
+                      <span className="drc-stat-chip drc-stat-done">
+                        <span className="drc-stat-icon">✓</span>
+                        {routine.completed}/{routine.total} done
+                      </span>
+                      <span className="drc-stat-chip drc-stat-pct">
+                        {routine.progress}%
+                      </span>
+                    </div>
 
-                  </div>
+                    <div className="drc-progress-section">
+                      <div className="drc-progress-track">
+                        <div className="drc-progress-fill" style={{ width: `${routine.progress}%` }} />
+                      </div>
+                    </div>
 
-                  <p>
-                    {routine.total} habits
-                  </p>
-                  
-
-                  <div className="dashboard-focus-progress-track">
-
-                    <div
-                      className="dashboard-focus-progress-fill"
-                      style={{
-                        width: `${routine.progress}%`
-                      }}
-                    />
-
-                  </div>
-
-                </article>
+                    <div className="drc-footer">
+                      <span className="drc-open-label">Open routine</span>
+                      <span className="drc-arrow">→</span>
+                    </div>
+                  </article>
+                  <button
+                    className="dashboard-routine-delete-btn"
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); deleteRoutine(routine.id, routine.name); }}
+                    title={`Delete ${routine.name} routine`}
+                    aria-label={`Delete ${routine.name} routine`}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                  </button>
+                </div>
 
               ))}
 
@@ -935,13 +972,13 @@ function Dashboard() {
                 type="button"
                 onClick={() => setShowRoutineModal(true)}
               >
-                <div className="dashboard-routine-card-top">
-                  <div>
-                    <span className="dashboard-routine-emoji">+</span>
-                    <h3>Add Routine</h3>
+                <div className="drc-header">
+                  <div className="drc-emoji-badge drc-emoji-badge--add">+</div>
+                  <div className="drc-header-info">
+                    <h3 className="drc-name">Add Routine</h3>
+                    <span className="drc-habit-count">Create a new routine</span>
                   </div>
                 </div>
-                <p>Create a new routine</p>
               </button>
 
             </div>

@@ -6,10 +6,13 @@ import ProtectedRoute from "./ProtectedRoute";
 import Register from "./Register";
 import Habit from "./Habits";
 import FocusPage from "./FocusPage";
+import AIInsights from "./AIInsights";
+import Momentum from "./Momentum";
 import CategoryRoutinePage from "./CategoryRoutinePage";
 import Onboarding from "./onboarding";
 import AppShell from "./AppShell";
 import { apiUrl } from "./api";
+
 import OnePercent from "./1percent";
 import RoutineDetailPage from "./routinedetail";
 
@@ -156,7 +159,7 @@ function App() {
           </ProtectedRoute>
         }
       />
-
+      
       <Route
         path="/habits"
         element={
@@ -183,6 +186,26 @@ function App() {
           <ProtectedRoute>
             <AppShell>
               <OnePercent />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <AIInsights />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+        <Route
+        path="/momentum"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <Momentum />
             </AppShell>
           </ProtectedRoute>
         }
