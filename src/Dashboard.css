@@ -382,7 +382,7 @@
   border-radius: 10px;
   color: rgba(185, 60, 45, 0.45);
   cursor: pointer;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 180ms ease, background 180ms ease, color 180ms ease, border-color 180ms ease, transform 180ms ease;
   z-index: 2;
 }
