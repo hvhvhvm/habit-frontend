@@ -6,7 +6,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import Register from "./Register";
 import Habit from "./Habits";
 import FocusPage from "./FocusPage";
-import AIInsights from "./AIInsights";
+import AIInsights from "./AIinsights";
 import Momentum from "./Momentum";
 import CategoryRoutinePage from "./CategoryRoutinePage";
 import Onboarding from "./onboarding";
