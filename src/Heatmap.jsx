@@ -18,6 +18,7 @@ function Heatmap() {
 
         if (res.status === 401) {
           localStorage.removeItem("token");
+          sessionStorage.setItem("session_expired", "true");
           window.location.href = "/login";
           return;
         }

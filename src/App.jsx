@@ -50,11 +50,28 @@ function App() {
 
         if (!res.ok) {
           localStorage.removeItem("token");
+          sessionStorage.setItem("session_expired", "true");
           navigate("/login", { replace: true });
           return;
         }
 
         const data = await res.json();
+
+        // Silently refresh the token to extend the session
+        try {
+          const refreshRes = await fetch(apiUrl("/auth/refresh"), {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (refreshRes.ok) {
+            const refreshData = await refreshRes.json();
+            localStorage.setItem("token", refreshData.access_token);
+          }
+        } catch {
+          // Token refresh failed silently — current token is still valid
+        }
 
         if (!data.onboarding_done && location.pathname !== "/onboarding") {
           navigate("/onboarding", { replace: true });
@@ -68,6 +85,7 @@ function App() {
       } catch (err) {
         console.error("Auth check failed:", err);
         localStorage.removeItem("token");
+        sessionStorage.setItem("session_expired", "true");
         navigate("/login", { replace: true });
       } finally {
         setLoading(false);

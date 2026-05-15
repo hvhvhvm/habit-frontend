@@ -320,8 +320,11 @@ function Habit() {
     window.setTimeout(() => setMessage(""), 2500);
   }, []);
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback((isExpired = false) => {
     localStorage.removeItem("token");
+    if (isExpired) {
+      sessionStorage.setItem("session_expired", "true");
+    }
     navigate("/login");
   }, [navigate]);
   const fetchRoutines = useCallback(async () => {

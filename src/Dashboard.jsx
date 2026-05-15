@@ -190,9 +190,12 @@ function Dashboard() {
     );
   };
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback((isExpired = false) => {
     localStorage.removeItem("token");
     localStorage.removeItem("name");
+    if (isExpired) {
+      sessionStorage.setItem("session_expired", "true");
+    }
     navigate("/login");
   }, [navigate]);
     useEffect(() => {
@@ -210,8 +213,7 @@ function Dashboard() {
       });
 
       if (res.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/login");
+        handleLogout(true);
         return;
       }
 
@@ -262,7 +264,7 @@ function Dashboard() {
         ]);
 
         if ([dashboardRes, habitsRes, routinesRes, recentRes, heatmapRes].some(r => r.status === 401)) {
-          handleLogout();
+          handleLogout(true);
           return;
         }
         if (!dashboardRes.ok || !habitsRes.ok || !routinesRes.ok || !recentRes.ok || !heatmapRes.ok) {

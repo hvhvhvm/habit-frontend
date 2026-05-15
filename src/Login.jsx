@@ -8,6 +8,15 @@ function Login() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
 
+    // Show session expired message if redirected due to token expiry
+    useEffect(() => {
+      const expired = sessionStorage.getItem("session_expired");
+      if (expired) {
+        setMessage("Your session has expired. Please log in again.");
+        sessionStorage.removeItem("session_expired");
+      }
+    }, []);
+
     useEffect(() => {
       const token = localStorage.getItem("token");
       if (!token) {
