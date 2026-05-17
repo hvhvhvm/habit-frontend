@@ -79,7 +79,14 @@ function SidebarItem({ item, collapsed, onClick }) {
 
 function AppShell({ children }) {
   const navigate = useNavigate();
-  const [streak, setStreak] = useState(12);
+  const [streak, setStreak] = useState(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem("cached_dashboard_data") || "null");
+      return Number(cached?.streak) || 0;
+    } catch {
+      return 0;
+    }
+  });
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -121,15 +128,13 @@ function AppShell({ children }) {
   }, []);
 
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      syncGlobalCache();
-    }, 0);
-    return () => window.clearTimeout(id);
-  }, [syncGlobalCache]);
-
-  useEffect(() => {
     const handleMutation = () => {
-      syncGlobalCache();
+      try {
+        const cached = JSON.parse(localStorage.getItem("cached_dashboard_data") || "null");
+        if (cached?.streak != null) setStreak(Number(cached.streak) || 0);
+      } catch {
+        syncGlobalCache();
+      }
     };
     window.addEventListener("habit-mutate", handleMutation);
     return () => window.removeEventListener("habit-mutate", handleMutation);

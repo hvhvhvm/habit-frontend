@@ -681,6 +681,7 @@ export default function Onboarding({ onComplete }) {
   const [removedHabits, setRemovedHabits] = useState([]);
   const [personalWhy, setPersonalWhy] = useState("");
   const [animating, setAnimating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   function nextStep() {
     setAnimating(true);
@@ -758,6 +759,28 @@ export default function Onboarding({ onComplete }) {
       });
     });
     return all;
+  }
+
+  async function submitOnboarding(includeWhy = true) {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const finalHabits = getFinalHabits();
+      if (onComplete) {
+        await onComplete({
+          name,
+          whyHere,
+          goals: selectedGoals,
+          time,
+          categories,
+          habits: finalHabits,
+          personalWhy: includeWhy ? personalWhy : "",
+        });
+      }
+    } catch (error) {
+      console.error("Onboarding submit failed:", error);
+      setSubmitting(false);
+    }
   }
 
   const containerStyle = {
@@ -1182,37 +1205,16 @@ export default function Onboarding({ onComplete }) {
             }}
           />
           <button
-            style={primaryBtn}
+            style={{ ...primaryBtn, opacity: submitting ? 0.65 : 1 }}
+            disabled={submitting}
             onClick={() => {
-              const finalHabits = getFinalHabits();
-              if (onComplete) {
-                onComplete({
-                  name: name,
-                  whyHere,
-                  goals: selectedGoals,
-                  time,
-                  categories,
-                  habits: finalHabits,
-                  personalWhy,
-                });
-              }
+              submitOnboarding(true);
             }}
           >
             Start my journey 🔥
           </button>
-          <button style={ghostBtn} onClick={() => {
-            const finalHabits = getFinalHabits();
-            if (onComplete) {
-              onComplete({
-                name,
-                whyHere,
-                goals: selectedGoals,
-                time,
-                categories,
-                habits: finalHabits,
-                personalWhy: "",
-              });
-            }
+          <button style={{ ...ghostBtn, opacity: submitting ? 0.5 : 1 }} disabled={submitting} onClick={() => {
+            submitOnboarding(false);
           }}>
             Skip — let's go
           </button>

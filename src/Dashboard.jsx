@@ -112,6 +112,16 @@ async function apiFetch(path, headers) {
   return { res, data: res.ok ? await res.json() : null };
 }
 
+function storeDashboardPayload(payload) {
+  localStorage.setItem("cached_habits_data", JSON.stringify(payload.habits || []));
+  localStorage.setItem("cached_dashboard_data", JSON.stringify(payload.dashboard || null));
+  localStorage.setItem("cached_recent_completed_data", JSON.stringify(payload.recent_completed || []));
+  localStorage.setItem("cached_routines_data", JSON.stringify(payload.routines || []));
+  if (payload.heatmap?.length) {
+    localStorage.setItem("cached_heatmap_data", JSON.stringify(payload.heatmap));
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 function Dashboard() {
@@ -189,7 +199,7 @@ function Dashboard() {
 
   // ── Reusable refresh helpers ────────────────────────────────────────────────
   const refreshAll = useCallback(async () => {
-    const { res, data } = await apiFetch("/dashboard/full", headers);
+    const { res, data } = await apiFetch("/dashboard/full?include_heatmap=false", headers);
     if (res.status === 401) {
       handleLogout(true);
       return;
@@ -198,15 +208,17 @@ function Dashboard() {
 
     setHabits(data.habits || []);
     setData(data.dashboard || null);
-    setHeatmapData(data.heatmap || []);
+    if (data.heatmap?.length) setHeatmapData(data.heatmap);
     setRecentCompleted(data.recent_completed || []);
     setRoutines(data.routines || []);
 
-    localStorage.setItem("cached_habits_data", JSON.stringify(data.habits || []));
-    localStorage.setItem("cached_dashboard_data", JSON.stringify(data.dashboard || null));
-    localStorage.setItem("cached_heatmap_data", JSON.stringify(data.heatmap || []));
-    localStorage.setItem("cached_recent_completed_data", JSON.stringify(data.recent_completed || []));
-    localStorage.setItem("cached_routines_data", JSON.stringify(data.routines || []));
+    storeDashboardPayload(data);
+
+    apiFetch("/dashboard/heatmap/", headers).then(({ data: heatmap }) => {
+      if (!heatmap) return;
+      setHeatmapData(heatmap);
+      localStorage.setItem("cached_heatmap_data", JSON.stringify(heatmap));
+    }).catch((err) => console.error("Failed to load heatmap:", err));
   }, [headers, handleLogout]);
 
   // ── Initial load ─────────────────────────────────────────────────────────────
@@ -215,7 +227,7 @@ function Dashboard() {
     let cancelled = false;
     async function load() {
       try {
-        const { res, data } = await apiFetch("/dashboard/full", headers);
+        const { res, data } = await apiFetch("/dashboard/full?include_heatmap=false", headers);
         if (cancelled) return;
         if (res.status === 401) {
           handleLogout(true);
@@ -225,15 +237,17 @@ function Dashboard() {
 
         setHabits(data.habits || []);
         setData(data.dashboard || null);
-        setHeatmapData(data.heatmap || []);
+        if (data.heatmap?.length) setHeatmapData(data.heatmap);
         setRecentCompleted(data.recent_completed || []);
         setRoutines(data.routines || []);
 
-        localStorage.setItem("cached_habits_data", JSON.stringify(data.habits || []));
-        localStorage.setItem("cached_dashboard_data", JSON.stringify(data.dashboard || null));
-        localStorage.setItem("cached_heatmap_data", JSON.stringify(data.heatmap || []));
-        localStorage.setItem("cached_recent_completed_data", JSON.stringify(data.recent_completed || []));
-        localStorage.setItem("cached_routines_data", JSON.stringify(data.routines || []));
+        storeDashboardPayload(data);
+
+        apiFetch("/dashboard/heatmap/", headers).then(({ data: heatmap }) => {
+          if (!heatmap || cancelled) return;
+          setHeatmapData(heatmap);
+          localStorage.setItem("cached_heatmap_data", JSON.stringify(heatmap));
+        }).catch((err) => console.error("Failed to load heatmap:", err));
       } catch (err) {
         console.error("Failed to load dashboard:", err);
       }

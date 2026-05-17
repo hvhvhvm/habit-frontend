@@ -130,42 +130,36 @@ function App() {
 
       localStorage.setItem("name", data.name);
 
-      // Create all habits in parallel instead of sequential
-      await Promise.all(
-        data.habits.map((h) =>
-          fetch(apiUrl("/habits"), {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              title: h.title,
-              category: h.category,
-              target_type: normalizeHabitTargetType(h.target_type),
-              target_value: h.target_value,
-              repeat: "daily",
-              days: [],
-              points: h.points,
-              is_session: false,
-            }),
-          })
-        )
-      );
-
       const completeRes = await fetch(apiUrl("/auth/complete-onboarding"), {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: data.name,
+          habits: data.habits.map((h) => ({
+            title: h.title,
+            category: h.category,
+            target_type: normalizeHabitTargetType(h.target_type),
+            target_value: h.target_value,
+            repeat: "daily",
+            days: [],
+            points: h.points,
+            is_session: false,
+          })),
+        }),
       });
 
       if (!completeRes.ok) {
         console.error("Complete onboarding failed:", await completeRes.text());
-        return;
+        throw new Error("Complete onboarding failed");
       }
 
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Onboarding error:", err);
+      throw err;
     } finally {
       onboardingSubmitting.current = false;
     }
