@@ -130,30 +130,6 @@ function calcTrend(values) {
   return values.map((_value, index) => Math.round((intercept + slope * index) * 10) / 10);
 }
 
-function calcConsistency(days) {
-  if (!days?.length) return 0;
-  const recent = days.slice(-30).filter(hasDueHabits);
-  if (!recent.length) return 0;
-  const completedDays = recent.filter((day) => Number(day.completion_percent) > 0).length;
-  return Math.round((completedDays / recent.length) * 100);
-}
-
-function calcBestStreak(days) {
-  if (!days?.length) return 0;
-
-  const sorted = [...days].sort((a, b) => new Date(a.date) - new Date(b.date));
-  let best = 0;
-  let current = 0;
-
-  for (const day of sorted) {
-    if (!hasDueHabits(day)) continue;
-    current = Number(day.completion_percent) > 0 ? current + 1 : 0;
-    best = Math.max(best, current);
-  }
-
-  return best;
-}
-
 function getYScale(series) {
   if (!series.length) return { domain: [0, 40], ticks: [0, 10, 20, 30, 40] };
 
@@ -167,17 +143,6 @@ function getYScale(series) {
   }
 
   return { domain: [0, upper], ticks };
-}
-
-function getJourneyMessage(series) {
-  const latest = series.at(-1)?.progress ?? 0;
-  const previous = series.at(-8)?.progress ?? series[0]?.progress ?? latest;
-  const delta = latest - previous;
-
-  if (series.length < 5) return "The first signal is forming.";
-  if (delta > 3) return "Your rhythm is becoming visible.";
-  if (delta < -2) return "A lighter stretch, still recoverable.";
-  return "Steady consistency is compounding.";
 }
 
 function Dot(props) {
@@ -281,7 +246,6 @@ function StatCard({ label, value, sub, icon, tone = "plain" }) {
 export default function OneBetterGraph() {
   const [days, setDays] = useState([]);
   const [journey, setJourney] = useState({ started: false, start_date: null });
-  const [streak, setStreak] = useState(0);
   const [rangeDays, setRangeDays] = useState(90);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
@@ -295,10 +259,9 @@ export default function OneBetterGraph() {
 
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [journeyRes, historyRes, dashboardRes] = await Promise.all([
+      const [journeyRes, historyRes] = await Promise.all([
         fetch(apiUrl("/dashboard/journey"), { headers }),
         fetch(apiUrl(`/dashboard/progress-history/?days=${rangeDays}`), { headers }),
-        fetch(apiUrl("/dashboard/"), { headers }),
       ]);
 
       if (journeyRes.ok) setJourney(await journeyRes.json());
@@ -311,11 +274,6 @@ export default function OneBetterGraph() {
         }
       } else {
         console.error("Progress history failed:", historyRes.status, await historyRes.text());
-      }
-
-      if (dashboardRes.ok) {
-        const dashboard = await dashboardRes.json();
-        setStreak(Number(dashboard.streak) || 0);
       }
     } catch (error) {
       console.error("OneBetterGraph:", error);
@@ -359,11 +317,8 @@ export default function OneBetterGraph() {
   };
 
   const series = useMemo(() => buildSeries(days), [days]);
-  const consistency = useMemo(() => calcConsistency(days), [days]);
-  const bestStreak = useMemo(() => calcBestStreak(days), [days]);
   const yScale = useMemo(() => getYScale(series), [series]);
   const latestProgress = Math.round(series.at(-1)?.progress ?? 0);
-  const message = useMemo(() => getJourneyMessage(series), [series]);
   const tickEvery = Math.max(1, Math.ceil(series.length / 9));
 
   if (loading) {

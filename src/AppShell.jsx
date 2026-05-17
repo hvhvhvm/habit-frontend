@@ -89,16 +89,51 @@ function AppShell({ children }) {
     navigate("/login");
   }, [navigate]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    fetch(apiUrl("/dashboard/"), { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (!cancelled && d?.streak != null) setStreak(Number(d.streak) || 0); })
-      .catch(() => {});
-    return () => { cancelled = true; };
+  const syncGlobalCache = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      const res = await fetch(apiUrl("/dashboard/full"), { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.dashboard?.streak != null) {
+          setStreak(Number(data.dashboard.streak) || 0);
+        }
+        if (data.dashboard) {
+          localStorage.setItem("cached_dashboard_data", JSON.stringify(data.dashboard));
+        }
+        if (data.habits) {
+          localStorage.setItem("cached_habits_data", JSON.stringify(data.habits));
+        }
+        if (data.heatmap) {
+          localStorage.setItem("cached_heatmap_data", JSON.stringify(data.heatmap));
+        }
+        if (data.recent_completed) {
+          localStorage.setItem("cached_recent_completed_data", JSON.stringify(data.recent_completed));
+        }
+        if (data.routines) {
+          localStorage.setItem("cached_routines_data", JSON.stringify(data.routines));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to sync global cache:", err);
+    }
   }, []);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      syncGlobalCache();
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [syncGlobalCache]);
+
+  useEffect(() => {
+    const handleMutation = () => {
+      syncGlobalCache();
+    };
+    window.addEventListener("habit-mutate", handleMutation);
+    return () => window.removeEventListener("habit-mutate", handleMutation);
+  }, [syncGlobalCache]);
 
   /* Close mobile drawer on outside click */
   useEffect(() => {

@@ -2,10 +2,11 @@
   min-height: 100vh;
   padding: 32px 20px 48px;
   background:
-    radial-gradient(circle at top left, rgba(246, 183, 76, 0.22), transparent 32%),
-    radial-gradient(circle at top right, rgba(39, 91, 79, 0.18), transparent 30%),
-    linear-gradient(160deg, #f8f1e6 0%, #efe4d4 52%, #e5dccf 100%);
-  color: #2d2418;
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.15), transparent 45%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 45%),
+    radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.08), transparent 50%),
+    linear-gradient(160deg, #faf6f0 0%, #efe4d4 52%, #e2d7c7 100%);
+  color: #2b241e;
 }
 .dashboard-active-card {
   transition: all 0.2s ease;
@@ -50,10 +51,15 @@
   max-width: 360px;
   padding: 12px 16px;
   border-radius: 18px;
-  background: rgba(255, 250, 244, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.56);
-  box-shadow: 0 12px 24px rgba(83, 58, 18, 0.06);
-  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 12px 24px rgba(83, 58, 18, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
 }
 
 .dashboard-welcome-card h1 {
@@ -66,16 +72,9 @@
 .dashboard-welcome-card p {
   max-width: 520px;
   margin: 0;
-  color: rgba(45, 36, 24, 0.72);
-  font-weight: 600;
+  color: #6b5d50;
+  font-weight: 500;
   font-size: 0.98rem;
-}
-
-.dashboard-streak-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 0 0 auto;
 }
 
 .dashboard-streak-icon {
@@ -96,6 +95,7 @@
   font-size: 1rem;
   line-height: 1.15;
   letter-spacing: -0.02em;
+  color: #c2410c;
 }
 
 .dashboard-brand {
@@ -136,12 +136,13 @@
 .dashboard-routine-card{
   position: relative;
   overflow: hidden;
-  background: linear-gradient(145deg, #f8f5f0 0%, #eef2ff 50%, #f0f4ff 100%);
-  border: 1px solid rgba(99, 102, 241, 0.12);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: 22px;
   padding: 22px;
   cursor: pointer;
   transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 280ms ease, border-color 280ms ease;
+  box-shadow: 0 10px 24px rgba(83, 58, 18, 0.03);
 }
 
 .dashboard-routine-card::before {
@@ -152,20 +153,20 @@
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.08), transparent 70%);
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.06), transparent 70%);
   pointer-events: none;
 }
 
 .dashboard-routine-card:hover{
   transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(99, 102, 241, 0.12), 0 6px 16px rgba(45, 36, 24, 0.06);
-  border-color: rgba(99, 102, 241, 0.22);
+  box-shadow: 0 16px 36px rgba(99, 102, 241, 0.08), 0 8px 16px rgba(83, 58, 18, 0.04);
+  border-color: rgba(99, 102, 241, 0.25);
 }
 
 .dashboard-routine-card-add {
   border-style: dashed;
-  border-color: rgba(79, 70, 229, 0.22);
-  background: linear-gradient(145deg, rgba(238, 242, 255, 0.9) 0%, rgba(248, 245, 240, 0.7) 100%);
+  border-color: rgba(99, 102, 241, 0.25);
+  background: rgba(255, 255, 255, 0.45);
   text-align: left;
 }
 
@@ -174,8 +175,8 @@
 }
 
 .dashboard-routine-card-add:hover {
-  border-color: rgba(79, 70, 229, 0.4);
-  background: linear-gradient(145deg, rgba(238, 242, 255, 1) 0%, rgba(248, 245, 240, 0.9) 100%);
+  border-color: rgba(99, 102, 241, 0.45);
+  background: rgba(255, 255, 255, 0.75);
 }
 
 /* ── Redesigned Routine Card Components (drc-*) ── */
@@ -488,9 +489,9 @@
 }
 
 .dashboard-button-secondary {
-  background: rgba(255, 255, 255, 0.6);
-  color: #2d2418;
-  border: 1px solid rgba(45, 36, 24, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+  color: #2b241e;
+  border: 1px solid rgba(43, 36, 30, 0.1);
 }
 
 .dashboard-button-small,
@@ -518,10 +519,11 @@
   overflow: hidden;
   border-radius: 24px;
   padding: 20px;
-  background: rgba(255, 250, 244, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.56);
-  box-shadow: 0 24px 48px rgba(83, 58, 18, 0.08);
-  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 20px 40px rgba(83, 58, 18, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .dashboard-panel::after {
@@ -531,7 +533,7 @@
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: rgba(246, 183, 76, 0.12);
+  background: rgba(245, 158, 11, 0.06);
   pointer-events: none;
 }
 
@@ -739,31 +741,23 @@
   flex-direction: row;
   align-items: center;
   gap: 10px;
-
   padding: 10px 14px;
-
   border-radius: 18px;
-  border: 1px solid rgba(45, 36, 24, 0.08);
-
-  background: rgba(255,255,255,0.82);
-
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
-
+  -webkit-backdrop-filter: blur(12px);
   cursor: pointer;
-
   text-align: left;
-
   font: inherit;
-  color: #2d2418;
-
+  color: #2b241e;
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
     border-color 180ms ease;
-
   overflow: hidden;
-
   min-height: 72px;
+  box-shadow: 0 4px 12px rgba(83, 58, 18, 0.02);
 }
 .dashboard-timeblock-card::before {
   content: "";
@@ -777,19 +771,19 @@
 
 .dashboard-timeblock-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(45, 36, 24, 0.1);
-  border-color: rgba(45, 36, 24, 0.14);
+  box-shadow: 0 10px 24px rgba(83, 58, 18, 0.06);
+  border-color: rgba(255, 255, 255, 1);
 }
 
 .dashboard-timeblock-card.is-active {
-  background: #1a1a2e;
-  color: #f0f0f5;
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  background: #2b241e;
+  color: #faf6f0;
+  border-color: #2b241e;
+  box-shadow: 0 12px 28px rgba(43, 36, 30, 0.15);
 }
 
 .dashboard-timeblock-card.is-active .dashboard-timeblock-label {
-  color: rgba(240, 240, 245, 0.6);
+  color: rgba(250, 246, 240, 0.7);
 }
 
 .dashboard-timeblock-icon {

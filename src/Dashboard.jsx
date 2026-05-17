@@ -20,6 +20,7 @@ import { apiUrl } from "./api";
 import CreateRoutineModal from "./CreateRoutineModal";
 
 import "./Dashboard.css";
+import "./Auth.css";
 
 // ─── Constants outside component (never recreated) ───────────────────────────
 
@@ -77,8 +78,15 @@ function getHabitTimeBlock(habit) {
   return habit.time_block || "default";
 }
 
-function getRoutineFilterId(routineId) {
-  return `routine-${routineId}`;
+function completeHabitLocally(habit) {
+  const target = Math.max(Number(habit.effective_target_value) || Number(habit.target_value) || 1, 1);
+  return {
+    ...habit,
+    completed_today: true,
+    completed_today_value: target,
+    progress_percent: 100,
+    remaining_value: 0,
+  };
 }
 
 // ─── Custom bar label (stable reference, outside component) ──────────────────
@@ -107,11 +115,46 @@ async function apiFetch(path, headers) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 function Dashboard() {
-  const [data,             setData]             = useState(null);
-  const [habits,           setHabits]           = useState([]);
-  const [routines,         setRoutines]         = useState([]);
-  const [recentCompleted,  setRecentCompleted]  = useState([]);
-  const [heatmapData,      setHeatmapData]      = useState([]);
+  const [data,             setData]             = useState(() => {
+    try {
+      const cached = localStorage.getItem("cached_dashboard_data");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [habits,           setHabits]           = useState(() => {
+    try {
+      const cached = localStorage.getItem("cached_habits_data");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [routines,         setRoutines]         = useState(() => {
+    try {
+      const cached = localStorage.getItem("cached_routines_data");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [,                 setRecentCompleted]  = useState(() => {
+    try {
+      const cached = localStorage.getItem("cached_recent_completed_data");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [heatmapData,      setHeatmapData]      = useState(() => {
+    try {
+      const cached = localStorage.getItem("cached_heatmap_data");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [message,          setMessage]          = useState("");
   const [submittingHabitId,setSubmittingHabitId]= useState(null);
   const [focusFilter,      setFocusFilter]      = useState("all");
@@ -145,25 +188,12 @@ function Dashboard() {
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
   // ── Reusable refresh helpers ────────────────────────────────────────────────
-  const refreshHabitsAndDashboard = useCallback(async () => {
-    const [{ res: hRes, data: hData }, { res: dRes, data: dData }] = await Promise.all([
-      apiFetch("/dashboard/my-habits", headers),
-      apiFetch("/dashboard/",          headers)
-    ]);
-    if (hRes.status === 401 || dRes.status === 401) { handleLogout(true); return; }
-    if (hData) setHabits(hData);
-    if (dData) setData(dData);
-  }, [headers, handleLogout]);
-
   const refreshAll = useCallback(async () => {
-
     const { res, data } = await apiFetch("/dashboard/full", headers);
-
     if (res.status === 401) {
       handleLogout(true);
       return;
     }
-
     if (!data) return;
 
     setHabits(data.habits || []);
@@ -172,50 +202,47 @@ function Dashboard() {
     setRecentCompleted(data.recent_completed || []);
     setRoutines(data.routines || []);
 
+    localStorage.setItem("cached_habits_data", JSON.stringify(data.habits || []));
+    localStorage.setItem("cached_dashboard_data", JSON.stringify(data.dashboard || null));
+    localStorage.setItem("cached_heatmap_data", JSON.stringify(data.heatmap || []));
+    localStorage.setItem("cached_recent_completed_data", JSON.stringify(data.recent_completed || []));
+    localStorage.setItem("cached_routines_data", JSON.stringify(data.routines || []));
   }, [headers, handleLogout]);
 
   // ── Initial load ─────────────────────────────────────────────────────────────
-useEffect(() => {
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    async function load() {
+      try {
+        const { res, data } = await apiFetch("/dashboard/full", headers);
+        if (cancelled) return;
+        if (res.status === 401) {
+          handleLogout(true);
+          return;
+        }
+        if (!data) return;
 
-  if (!token) return;
+        setHabits(data.habits || []);
+        setData(data.dashboard || null);
+        setHeatmapData(data.heatmap || []);
+        setRecentCompleted(data.recent_completed || []);
+        setRoutines(data.routines || []);
 
-  let cancelled = false;
-
-  async function load() {
-
-    try {
-
-      const { res, data } = await apiFetch("/dashboard/full", headers);
-
-      if (cancelled) return;
-
-      if (res.status === 401) {
-        handleLogout(true);
-        return;
+        localStorage.setItem("cached_habits_data", JSON.stringify(data.habits || []));
+        localStorage.setItem("cached_dashboard_data", JSON.stringify(data.dashboard || null));
+        localStorage.setItem("cached_heatmap_data", JSON.stringify(data.heatmap || []));
+        localStorage.setItem("cached_recent_completed_data", JSON.stringify(data.recent_completed || []));
+        localStorage.setItem("cached_routines_data", JSON.stringify(data.routines || []));
+      } catch (err) {
+        console.error("Failed to load dashboard:", err);
       }
-
-      if (!data) return;
-
-      setHabits(data.habits || []);
-      setData(data.dashboard || null);
-      setHeatmapData(data.heatmap || []);
-      setRecentCompleted(data.recent_completed || []);
-      setRoutines(data.routines || []);
-
-    } catch (err) {
-
-      console.error("Failed to load dashboard:", err);
-
     }
-  }
-
-  load();
-
-  return () => {
-    cancelled = true;
-  };
-
-}, [token, headers, handleLogout]);
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, headers, handleLogout]);
 
   // ── First-visit flag ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -248,23 +275,6 @@ useEffect(() => {
     { id: "default", label: "Constant",icon: "🔄", gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)", count: activeHabits.filter(h => getHabitTimeBlock(h) === "default").length }
   ], [activeHabits]);
 
-  const routineTabs = useMemo(() =>
-    routines
-      .map(r => ({
-        id: getRoutineFilterId(r.id),
-        routineId: r.id,
-        label: r.name,
-        icon: r.emoji,
-        count: activeHabits.filter(h => Number(h.routine_id) === Number(r.id)).length
-      }))
-      .filter(t => t.count > 0),
-    [routines, activeHabits]);
-
-  const focusTabs = useMemo(() =>
-    [{ id: "all", label: "All", count: activeHabits.length }, ...timeBlockSummary, ...routineTabs]
-      .filter(t => t.id === "all" || t.count > 0),
-    [activeHabits.length, timeBlockSummary, routineTabs]);
-
   const visibleFocusHabits = useMemo(() => {
     if (focusFilter === "all") return standaloneActiveHabits;
     if (focusFilter.startsWith("routine-")) return [];
@@ -274,7 +284,7 @@ useEffect(() => {
   const routineCards = useMemo(() =>
     routines
       .map(routine => {
-        const routineHabits = activeHabits.filter(h => Number(h.routine_id) === Number(routine.id));
+        const routineHabits = habits.filter(h => h.is_due_today && Number(h.routine_id) === Number(routine.id));
         const visibleRoutineHabits = focusFilter === "all"
           ? routineHabits
           : routineHabits.filter(h => getHabitTimeBlock(h) === focusFilter);
@@ -283,13 +293,29 @@ useEffect(() => {
         return { ...routine, total, completed, progress: total > 0 ? Math.round((completed / total) * 100) : 0, habits: visibleRoutineHabits };
       })
       .filter(r => r.total > 0),
-    [routines, activeHabits, focusFilter]);
+    [routines, habits, focusFilter]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
   const handleCompleteHabit = useCallback(async (habit) => {
+    const originalHabits = habits;
+    const originalData = data;
+    const points = Number(habit.points) || 10;
+
     try {
       setSubmittingHabitId(habit.id);
+      setHabits((prev) => {
+        const next = prev.map((item) => item.id === habit.id ? completeHabitLocally(item) : item);
+        localStorage.setItem("cached_habits_data", JSON.stringify(next));
+        return next;
+      });
+      setData((prev) => prev ? {
+        ...prev,
+        completed_today: Math.min((Number(prev.completed_today) || 0) + 1, Number(prev.total_habits) || 0),
+        today_points: Math.min((Number(prev.today_points) || 0) + points, Number(prev.total_points) || ((Number(prev.today_points) || 0) + points)),
+      } : prev);
+      setMessage(`${habit.title} completed! +${points} Points`);
+
       const res = await fetch(apiUrl("/logs"), {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -298,27 +324,60 @@ useEffect(() => {
       if (res.status === 401) { handleLogout(); return; }
       if (!res.ok) throw new Error("Failed to complete habit");
 
-      // Only re-fetch the two endpoints that change after a log
-      const [{ res: hRes, data: hData }, { res: dRes, data: dData }, { res: hmRes, data: hmData }] = await Promise.all([
+      const [{ res: hRes, data: hData }, { res: dRes, data: dData }, { data: hmData }] = await Promise.all([
         apiFetch("/dashboard/my-habits",    headers),
         apiFetch("/dashboard/",             headers),
         apiFetch("/dashboard/heatmap/",     headers)
       ]);
       if (hRes.status === 401 || dRes.status === 401) { handleLogout(); return; }
-      if (hData)  setHabits(hData);
-      if (dData)  setData(dData);
-      if (hmData) setHeatmapData(hmData);
-      setMessage(`${habit.title} completed! +${habit.points || 10} Points 🎉`);
+      if (hData) {
+        setHabits(hData);
+        localStorage.setItem("cached_habits_data", JSON.stringify(hData));
+      }
+      if (dData) {
+        setData(dData);
+        localStorage.setItem("cached_dashboard_data", JSON.stringify(dData));
+      }
+      if (hmData) {
+        setHeatmapData(hmData);
+        localStorage.setItem("cached_heatmap_data", JSON.stringify(hmData));
+      }
+      window.dispatchEvent(new Event("habit-mutate"));
     } catch (err) {
       console.error(err);
+      setHabits(originalHabits);
+      setData(originalData);
+      localStorage.setItem("cached_habits_data", JSON.stringify(originalHabits));
+      localStorage.setItem("cached_dashboard_data", JSON.stringify(originalData));
       setMessage(err.message || "Failed to complete habit");
     } finally {
       setSubmittingHabitId(null);
     }
-  }, [token, headers, handleLogout]);
+  }, [data, habits, token, headers, handleLogout]);
 
   const deleteRoutine = useCallback(async (routineId, routineName) => {
     if (!window.confirm(`Delete "${routineName}" and all its habits? This cannot be undone.`)) return;
+
+    // Save states for potential rollback
+    const originalRoutines = [...routines];
+    const originalHabits = [...habits];
+
+    // Optimistically update local states & caches immediately
+    setRoutines((prev) => {
+      const next = prev.filter((r) => r.id !== routineId);
+      localStorage.setItem("cached_routines_data", JSON.stringify(next));
+      return next;
+    });
+
+    setHabits((prev) => {
+      const next = prev.filter((h) => Number(h.routine_id) !== Number(routineId));
+      localStorage.setItem("cached_habits_data", JSON.stringify(next));
+      return next;
+    });
+
+    setMessage(`"${routineName}" routine deleted`);
+    window.dispatchEvent(new Event("habit-mutate"));
+
     try {
       const res = await fetch(apiUrl(`/routines/${routineId}`), {
         method: "DELETE",
@@ -326,15 +385,27 @@ useEffect(() => {
       });
       if (res.status === 401) { handleLogout(); return; }
       if (!res.ok) throw new Error("Delete failed");
-      setMessage(`"${routineName}" routine deleted`);
-      await refreshHabitsAndDashboard();
-      const { res: rRes, data: rData } = await apiFetch("/routines", headers);
-      if (rData) setRoutines(rData);
+
+      // Silently refresh the full state to ensure absolute sync correctness!
+      refreshAll();
     } catch (err) {
       console.error(err);
+      // Rollback on failure
+      setRoutines(originalRoutines);
+      setHabits(originalHabits);
+      localStorage.setItem("cached_routines_data", JSON.stringify(originalRoutines));
+      localStorage.setItem("cached_habits_data", JSON.stringify(originalHabits));
       setMessage("Error deleting routine");
     }
-  }, [token, headers, handleLogout, refreshHabitsAndDashboard]);
+  }, [token, routines, habits, handleLogout, refreshAll]);
+
+  useEffect(() => {
+    const handleMutation = () => {
+      refreshAll();
+    };
+    window.addEventListener("habit-mutate", handleMutation);
+    return () => window.removeEventListener("habit-mutate", handleMutation);
+  }, [refreshAll]);
 
   const handleFilterToggle = useCallback((blockId) => {
     setFocusFilter(prev => prev === blockId ? "all" : blockId);
@@ -347,15 +418,26 @@ useEffect(() => {
   const goCategory     = useCallback((name) => navigate(`/category-routine/${encodeURIComponent(name)}`), [navigate]);
   const goRoutinePlanner = useCallback(() => navigate("/habits", { state: { viewMode: "routine" } }), [navigate]);
 
-  // ── Loading / error states ───────────────────────────────────────────────────
-
   if (!data) {
     return (
-      <div className="dashboard-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-        <div style={{ textAlign: "center", opacity: 0.7 }}>
-          <h2 style={{ color: "#9ca3af", fontWeight: 500 }}>Organizing your space...</h2>
-          <p style={{ color: "#6b7280", marginTop: "8px" }}>Pulling today's progress & momentum</p>
+      <div className="auth-wrapper">
+        <div className="auth-bg-blob auth-bg-blob--1" />
+        <div className="auth-bg-blob auth-bg-blob--2" />
+        <div style={{ textAlign: "center", zIndex: 10 }}>
+          <div className="auth-brand" style={{ marginBottom: "16px" }}>
+            <div className="auth-logo" style={{ animation: "pulse-logo 1.5s infinite alternate ease-in-out" }} />
+            <span className="auth-logo-text">Focus Now</span>
+          </div>
+          <h2 style={{ color: "#ffffff", fontWeight: 600, fontSize: "20px", marginTop: "24px" }}>Organizing your space...</h2>
+          <p style={{ color: "#9ca3af", marginTop: "8px", fontSize: "14px" }}>Assembling your daily rhythm & momentum</p>
+          <div className="auth-spinner" style={{ margin: "24px auto 0 auto", width: "24px", height: "24px", borderTopColor: "#fbbf24" }} />
         </div>
+        <style>{`
+          @keyframes pulse-logo {
+            0% { transform: scale(1); filter: brightness(1); }
+            100% { transform: scale(1.06); filter: brightness(1.25) drop-shadow(0 0 15px rgba(245, 158, 11, 0.6)); }
+          }
+        `}</style>
       </div>
     );
   }

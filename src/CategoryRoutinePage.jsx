@@ -13,6 +13,17 @@ function getCompletionValue(habit) {
   );
 }
 
+function completeHabitLocally(habit) {
+  const target = Math.max(Number(habit.effective_target_value) || Number(habit.target_value) || 1, 1);
+  return {
+    ...habit,
+    completed_today: true,
+    completed_today_value: target,
+    progress_percent: 100,
+    remaining_value: 0,
+  };
+}
+
 export default function CategoryRoutinePage() {
   const { categoryName } = useParams();
   const navigate = useNavigate();
@@ -62,10 +73,15 @@ export default function CategoryRoutinePage() {
 
   const handleComplete = async (habit) => {
     if (habit.completed_today || isSubmitting) return;
+    const originalData = data;
 
     try {
       setActionError("");
       setIsSubmitting(habit.id);
+      setData((prev) => prev ? {
+        ...prev,
+        habits: prev.habits.map((item) => item.id === habit.id ? completeHabitLocally(item) : item),
+      } : prev);
       const res = await fetch(apiUrl("/logs"), {
         method: "POST",
         headers: {
@@ -87,6 +103,7 @@ export default function CategoryRoutinePage() {
       if (!res.ok) throw new Error("Failed to complete habit");
 
       // Refresh page and compute feedback from fresh values
+      window.dispatchEvent(new Event("habit-mutate"));
       const refreshed = await fetchRoutineData();
       const activeHabitsHere = refreshed?.habits?.filter((h) => h.is_due_today) || [];
       const completedCount = activeHabitsHere.filter((h) => h.completed_today).length;
@@ -101,6 +118,7 @@ export default function CategoryRoutinePage() {
 
     } catch (err) {
       console.error(err);
+      setData(originalData);
       setActionError("Could not complete this habit. Please try again.");
     } finally {
       setIsSubmitting(null);
@@ -127,6 +145,7 @@ export default function CategoryRoutinePage() {
       if (!res.ok) throw new Error("Failed to add sub-habit");
 
       setSubHabitDrafts((prev) => ({ ...prev, [habitId]: "" }));
+      window.dispatchEvent(new Event("habit-mutate"));
       await fetchRoutineData();
     } catch (err) {
       console.error(err);
@@ -148,6 +167,8 @@ export default function CategoryRoutinePage() {
 
       if (!res.ok) throw new Error("Failed to toggle sub-habit");
 
+      window.dispatchEvent(new Event("habit-mutate"));
+
       await fetchRoutineData();
     } catch (err) {
       console.error(err);
@@ -168,6 +189,8 @@ export default function CategoryRoutinePage() {
       });
 
       if (!res.ok) throw new Error("Failed to delete sub-habit");
+
+      window.dispatchEvent(new Event("habit-mutate"));
 
       await fetchRoutineData();
     } catch (err) {

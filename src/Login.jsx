@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiUrl } from "./api";
+import "./Auth.css";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -100,6 +101,7 @@ function Login() {
 
       const data = await res.json();
       localStorage.setItem("token", data.access_token);
+      if (data.username) localStorage.setItem("name", data.username);
       navigate("/dashboard", { replace: true });
 
     } catch (err) {
@@ -110,40 +112,75 @@ function Login() {
   }
 
   return (
-    <div>
-      <h2>Login</h2>
+    <div className="auth-wrapper">
+      <div className="auth-bg-blob auth-bg-blob--1" />
+      <div className="auth-bg-blob auth-bg-blob--2" />
 
-      <form onSubmit={handleLogin}>
-        <input
-          type="text"
-          placeholder="Enter email or username"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <br />
-        <input
-          type="password"
-          placeholder="Enter password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <br />
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Logging in..." : "Login"}
-        </button>
-      </form>
+      <div className="auth-card">
+        <div className="auth-brand">
+          <div className="auth-logo" />
+          <span className="auth-logo-text">Focus Now</span>
+        </div>
 
-      <p>
-        Don't have an account?{" "}
-        <span
-          style={{ color: "blue", cursor: "pointer" }}
-          onClick={() => navigate("/register")}
-        >
-          Register
-        </span>
-      </p>
+        <h1 className="auth-title">Welcome back</h1>
+        <p className="auth-subtitle">Log in to your account to continue</p>
 
-      {message && <p style={{ color: "red" }}>{message}</p>}
+        {message && (
+          <div className="auth-alert">
+            <span>⚠️</span> {message}
+          </div>
+        )}
+
+        <form className="auth-form" onSubmit={handleLogin}>
+          <div className="auth-input-group">
+            <label htmlFor="email">Email or Username</label>
+            <div className="auth-input-wrapper">
+              <input
+                id="email"
+                type="text"
+                placeholder="Enter email or username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="auth-input"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="auth-input-group">
+            <label htmlFor="password">Password</label>
+            <div className="auth-input-wrapper">
+              <input
+                id="password"
+                type="password"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="auth-input"
+                required
+              />
+            </div>
+          </div>
+
+          <button type="submit" className="auth-button" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <div className="auth-spinner" />
+                <span>Signing In...</span>
+              </>
+            ) : (
+              "Sign In"
+            )}
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          Don't have an account?{" "}
+          <span className="auth-link" onClick={() => navigate("/register")}>
+            Register
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

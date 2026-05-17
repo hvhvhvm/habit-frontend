@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { apiUrl } from "./api";
 import "./CreateRoutineModal.css";
 
@@ -68,37 +68,21 @@ export default function CreateRoutineModal({ onClose, onCreated, token }) {
     setError("");
 
     try {
-      // 1. Create the routine
-      const routineRes = await fetch(apiUrl("/routines"), {
+      const routineRes = await fetch(apiUrl("/routines/with-habits"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: name.trim(), emoji }),
-      });
-
-      if (!routineRes.ok) {
-        throw new Error("Failed to create routine");
-      }
-
-      const routine = await routineRes.json();
-
-      // 2. Create each habit under this routine
-      const habitPromises = habitNames.map((habitTitle) =>
-        fetch(apiUrl("/habits"), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
+        body: JSON.stringify({
+          name: name.trim(),
+          emoji,
+          habits: habitNames.map((habitTitle) => ({
             title: habitTitle,
             target_type: "count",
             target_value: 1,
             category: "Productivity",
             time_block: timeBlock,
-            routine_id: routine.id,
             points: 10,
             repeat,
             days: repeat === "custom" ? days : [],
@@ -106,14 +90,24 @@ export default function CreateRoutineModal({ onClose, onCreated, token }) {
             focus_time: null,
             break_time: null,
             total_sessions: null,
-          }),
-        })
-      );
+          })),
+        }),
+      });
 
-      await Promise.all(habitPromises);
+      if (routineRes.status === 401) {
+        throw new Error("Please log in again");
+      }
+
+      if (!routineRes.ok) {
+        throw new Error("Failed to create routine");
+      }
+
+      const created = await routineRes.json();
+
+      window.dispatchEvent(new Event("habit-mutate"));
 
       if (typeof onCreated === "function") {
-        onCreated(routine);
+        onCreated(created);
       }
 
       onClose();

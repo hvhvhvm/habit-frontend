@@ -14,6 +14,7 @@ import AppShell from "./AppShell";
 import { apiUrl } from "./api";
 import OnePercent from "./1percent";
 import RoutineDetailPage from "./routinedetail";
+import "./Auth.css";
 
 function normalizeHabitTargetType(targetType) {
   return targetType === "duration" || targetType === "minutes" ? "duration" : "count";
@@ -96,7 +97,27 @@ function App() {
     return () => { cancelled = true; };
   }, [location.pathname, navigate]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div className="auth-wrapper">
+        <div className="auth-bg-blob auth-bg-blob--1" />
+        <div className="auth-bg-blob auth-bg-blob--2" />
+        <div style={{ textAlign: "center", zIndex: 10 }}>
+          <div className="auth-brand" style={{ marginBottom: "16px" }}>
+            <div className="auth-logo" style={{ animation: "pulse 1.5s infinite alternate ease-in-out" }} />
+            <span className="auth-logo-text">Focus Now</span>
+          </div>
+          <div className="auth-spinner" style={{ margin: "24px auto 0 auto", width: "24px", height: "24px", borderTopColor: "#fbbf24" }} />
+        </div>
+        <style>{`
+          @keyframes pulse {
+            0% { transform: scale(1); filter: brightness(1); }
+            100% { transform: scale(1.08); filter: brightness(1.2) drop-shadow(0 0 15px rgba(245, 158, 11, 0.6)); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   async function handleOnboardingComplete(data) {
     // Prevent double submission

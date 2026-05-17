@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiUrl } from "./api";
+import "./Auth.css";
 
 function Register() {
   const [email, setEmail] = useState("");
@@ -54,6 +55,7 @@ function Register() {
       const data = await res.json();
 
       localStorage.setItem("token", data.access_token);
+      if (data.username) localStorage.setItem("name", data.username);
 
       navigate("/onboarding", { replace: true });
     } catch (err) {
@@ -64,54 +66,90 @@ function Register() {
   }
 
   return (
-    <div>
-      <h2>Register</h2>
+    <div className="auth-wrapper">
+      <div className="auth-bg-blob auth-bg-blob--1" />
+      <div className="auth-bg-blob auth-bg-blob--2" />
 
-      <form onSubmit={handleRegister}>
-        <input
-          type="text"
-          placeholder="Enter username"
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-          required
-        />
-        <br />
+      <div className="auth-card">
+        <div className="auth-brand">
+          <div className="auth-logo" />
+          <span className="auth-logo-text">Focus Now</span>
+        </div>
 
-        <input
-          type="email"
-          placeholder="Enter email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-        />
-        <br />
+        <h1 className="auth-title">Create Account</h1>
+        <p className="auth-subtitle">Join us to start habit tracking today</p>
 
-        <input
-          type="password"
-          placeholder="Enter password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          required
-        />
-        <br />
-        <br />
+        {message && (
+          <div className="auth-alert">
+            <span>⚠️</span> {message}
+          </div>
+        )}
 
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Registering..." : "Register"}
-        </button>
-      </form>
+        <form className="auth-form" onSubmit={handleRegister}>
+          <div className="auth-input-group">
+            <label htmlFor="username">Username</label>
+            <div className="auth-input-wrapper">
+              <input
+                id="username"
+                type="text"
+                placeholder="Enter username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                className="auth-input"
+                required
+              />
+            </div>
+          </div>
 
-      <p>
-        Already have an account?{" "}
-        <span
-          style={{ color: "blue", cursor: "pointer" }}
-          onClick={() => navigate("/login")}
-        >
-          Login
-        </span>
-      </p>
+          <div className="auth-input-group">
+            <label htmlFor="email">Email Address</label>
+            <div className="auth-input-wrapper">
+              <input
+                id="email"
+                type="email"
+                placeholder="Enter email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="auth-input"
+                required
+              />
+            </div>
+          </div>
 
-      {message && <p style={{ color: "red" }}>{message}</p>}
+          <div className="auth-input-group">
+            <label htmlFor="password">Password</label>
+            <div className="auth-input-wrapper">
+              <input
+                id="password"
+                type="password"
+                placeholder="Enter password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="auth-input"
+                required
+              />
+            </div>
+          </div>
+
+          <button type="submit" className="auth-button" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <div className="auth-spinner" />
+                <span>Registering...</span>
+              </>
+            ) : (
+              "Get Started"
+            )}
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          Already have an account?{" "}
+          <span className="auth-link" onClick={() => navigate("/login")}>
+            Login
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

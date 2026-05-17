@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Habits.css";
+import "./Auth.css";
 import CreateRoutineModal from "./CreateRoutineModal";
 import CreateHabitModal from "./CreateHabitModal";
 import FocusSessionModal from "./FocusSessionModal";
@@ -129,6 +130,24 @@ function getProgressPercent(habit) {
   }
 
   return Number(habit.progress_percent) || 0;
+}
+
+function applyHabitProgress(habit, value) {
+  const completedValue = (Number(habit.completed_today_value) || 0) + Number(value);
+  const target = Math.max(
+    Number(habit.effective_target_value) || Number(habit.target_value) || 1,
+    1
+  );
+  const progressPercent = Math.min(Math.round((completedValue / target) * 100), 100);
+  const remainingValue = Math.max(target - completedValue, 0);
+
+  return {
+    ...habit,
+    completed_today_value: completedValue,
+    progress_percent: progressPercent,
+    remaining_value: remainingValue,
+    completed_today: progressPercent >= 100,
+  };
 }
 /* ── Habit card ── */
 function HabitCard({ habit, submittingHabitId, customValues, onEdit, onDelete, onQuick, onCustomChange, onCustomSubmit, onFocus, onCategoryClick }) {
@@ -295,8 +314,30 @@ function Habit() {
   const initialTab = location.state?.tab === "completed" ? "completed" : "active";
   const [currentTab, setCurrentTab] = useState(initialTab);
   
-  const [habits, setHabits] = useState([]);
-  const [routines, setRoutines] = useState([]);
+  const [habits, setHabits] = useState(() => {
+    try {
+      const cached = localStorage.getItem("cached_habits_data");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [routines, setRoutines] = useState(() => {
+    try {
+      const cached = localStorage.getItem("cached_routines_data");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    try {
+      const cached = localStorage.getItem("cached_habits_data");
+      return !cached;
+    } catch {
+      return true;
+    }
+  });
   const [message, setMessage] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [customValues, setCustomValues] = useState({});
@@ -307,9 +348,6 @@ function Habit() {
   const [editingHabit, setEditingHabit] = useState(null);
   const [focusHabit, setFocusHabit] = useState(null);
   const [viewMode, setViewMode] = useState(location.state?.viewMode === "routine" ? "routine" : "all");
-  const [showRoutineForm, setShowRoutineForm] = useState(false);
-  const [routineDraft, setRoutineDraft] = useState({ name: "", emoji: "✨" });
-  const [isCreatingRoutine, setIsCreatingRoutine] = useState(false);
   const [selectedRoutineId, setSelectedRoutineId] = useState("");
   const [routineTimeFilter, setRoutineTimeFilter] = useState("all");
   const [prefillRoutineId, setPrefillRoutineId] = useState(null);
@@ -329,39 +367,25 @@ function Habit() {
   }, [navigate]);
   const fetchRoutines = useCallback(async () => {
     try {
-
-      const res = await fetch(
-        apiUrl("/routines"),
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (res.status === 401) {
-        handleLogout();
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch routines");
-      }
-
+      const res = await fetch(apiUrl("/routines"), { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 401) { handleLogout(); return; }
+      if (!res.ok) throw new Error("Failed to fetch routines");
       const data = await res.json();
-
       setRoutines(data);
-
+      localStorage.setItem("cached_routines_data", JSON.stringify(data));
     } catch (err) {
       console.error(err);
     }
   }, [handleLogout, token]);
+
   const fetchHabits = useCallback(async () => {
     try {
       const res = await fetch(apiUrl("/habits"), { headers: { Authorization: `Bearer ${token}` } });
       if (res.status === 401) { handleLogout(); return; }
       if (!res.ok) throw new Error("Failed to load habits");
-      setHabits(normalizeHabits(await res.json()));
+      const data = normalizeHabits(await res.json());
+      setHabits(data);
+      localStorage.setItem("cached_habits_data", JSON.stringify(data));
     } catch (err) {
       console.error(err);
       setMessage("Failed to load habits");
@@ -369,16 +393,37 @@ function Habit() {
   }, [handleLogout, token]);
 
   useEffect(() => {
-      fetchHabits();
-      fetchRoutines();
-    }, [fetchHabits, fetchRoutines]);
+    if (!token) return;
+    let cancelled = false;
+    async function loadData() {
+      const cached = localStorage.getItem("cached_habits_data");
+      if (!cached) setIsLoading(true);
+      try {
+        await Promise.all([fetchHabits(), fetchRoutines()]);
+      } catch (err) {
+        console.error("Failed to load initial data:", err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    loadData();
+    return () => { cancelled = true; };
+  }, [token, fetchHabits, fetchRoutines]);
   useEffect(() => { setCurrentTab(initialTab); }, [initialTab]);
   useEffect(() => {
     if (location.state?.viewMode === "routine") {
       setViewMode("routine");
     }
   }, [location.state]);
-  useEffect(() => { if (location.state?.category) setSelectedCategory(location.state.category); }, [location.state]);
+
+  useEffect(() => {
+    const handleMutation = () => {
+      fetchHabits();
+      fetchRoutines();
+    };
+    window.addEventListener("habit-mutate", handleMutation);
+    return () => window.removeEventListener("habit-mutate", handleMutation);
+  }, [fetchHabits, fetchRoutines]);
 
   const activeHabits = useMemo(() => habits.filter((h) => h.is_due_today && !h.completed_today), [habits]);
   const completedHabits = useMemo(() => habits.filter((h) => h.is_due_today && h.completed_today), [habits]);
@@ -406,60 +451,146 @@ function Habit() {
   const handleSelectCategory = (cat, tab = currentTab) => { setSelectedCategory(cat); setCurrentTab(tab); jumpToSection(); };
 
   const handleAddHabit = (habitData) => {
-    if (isAddingHabit) return;
-    setIsAddingHabit(true);
+    // 1. Immediately close the modal to make it feel extremely responsive!
+    setShowModal(false);
+    setPrefillRoutineId(null);
+    setPrefillTimeBlock("default");
+    showTemporaryMessage("Habit added!");
+
+    // 2. Build a temporary optimistic habit object
+    const optimisticHabit = {
+      id: `temp-${Date.now()}`,
+      title: habitData.title,
+      category: habitData.category,
+      target_type: habitData.target_type,
+      target_value: habitData.target_value,
+      time_block: habitData.time_block,
+      routine_id: habitData.routine_id,
+      points: habitData.points || 10,
+      repeat: habitData.repeat,
+      days: habitData.days,
+      scheduled_time: habitData.scheduled_time,
+      is_session: habitData.is_session,
+      focus_time: habitData.focus_time,
+      break_time: habitData.break_time,
+      total_sessions: habitData.total_sessions,
+      // Default progress fields so it renders correctly
+      completed_today: false,
+      remaining_value: habitData.target_value,
+      is_due_today: true,
+      current_streak: 0,
+      history: []
+    };
+
+    // 3. Update the habits list in state and cache immediately!
+    setHabits((prev) => {
+      const next = [optimisticHabit, ...prev];
+      localStorage.setItem("cached_habits_data", JSON.stringify(next));
+      return next;
+    });
+
+    // 4. Send the background POST request to the server
     fetch(apiUrl("/habits"), { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(habitData) })
-      .then((r) => { if (r.status === 401) { handleLogout(); return null; } if (!r.ok) throw new Error("Could not add habit"); return r.json(); })
-      .then((h) => { if (!h) return; setShowModal(false); setPrefillRoutineId(null); setPrefillTimeBlock("default"); showTemporaryMessage("Habit added!"); return fetchHabits(); })
-      .catch((e) => { console.error(e); setMessage(e.message || "Error adding habit"); })
-      .finally(() => setIsAddingHabit(false));
-  };
-
-  const handleCreateRoutine = async (event) => {
-    event.preventDefault();
-    const name = routineDraft.name.trim();
-    if (!name || isCreatingRoutine) return;
-
-    try {
-      setIsCreatingRoutine(true);
-      const res = await fetch(apiUrl("/routines"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, emoji: routineDraft.emoji.trim() || "✨" })
+      .then((r) => { 
+        if (r.status === 401) { handleLogout(); return null; } 
+        if (!r.ok) throw new Error("Could not add habit"); 
+        return r.json(); 
+      })
+      .then((actualHabit) => {
+        if (!actualHabit) return;
+        // Replace the temporary optimistic habit with the real one from the server
+        setHabits((prev) => {
+          const next = prev.map((h) => h.id === optimisticHabit.id ? actualHabit : h);
+          localStorage.setItem("cached_habits_data", JSON.stringify(next));
+          return next;
+        });
+        window.dispatchEvent(new Event("habit-mutate"));
+      })
+      .catch((e) => { 
+        console.error(e); 
+        // Rollback the optimistic update on failure
+        setHabits((prev) => {
+          const next = prev.filter((h) => h.id !== optimisticHabit.id);
+          localStorage.setItem("cached_habits_data", JSON.stringify(next));
+          return next;
+        });
+        setMessage("Could not add habit: " + e.message); 
       });
-      if (res.status === 401) { handleLogout(); return; }
-      if (!res.ok) throw new Error("Could not create routine");
-      const routine = await res.json();
-      setRoutines((prev) => [...prev, routine]);
-      setSelectedRoutineId(String(routine.id));
-      setRoutineDraft({ name: "", emoji: "✨" });
-      setShowRoutineForm(false);
-      showTemporaryMessage("Routine created!");
-    } catch (err) {
-      console.error(err);
-      setMessage(err.message || "Error creating routine");
-    } finally {
-      setIsCreatingRoutine(false);
-    }
   };
 
   const deleteHabit = (id) => {
+    // 1. Save original state for potential rollback
+    const originalHabits = [...habits];
+
+    // 2. Immediately filter out the habit from state & cache in less than 1ms
+    setHabits((p) => {
+      const next = p.filter((h) => h.id !== id);
+      localStorage.setItem("cached_habits_data", JSON.stringify(next));
+      return next;
+    });
+
+    showTemporaryMessage("Habit deleted");
+    window.dispatchEvent(new Event("habit-mutate"));
+
+    // 3. Make delete call in background
     fetch(apiUrl(`/habits/${id}`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => { if (r.status === 401) { handleLogout(); return null; } if (!r.ok) throw new Error("Delete failed"); setHabits((p) => p.filter((h) => h.id !== id)); showTemporaryMessage("Habit deleted"); })
-      .catch((e) => { console.error(e); showTemporaryMessage("Error deleting habit"); });
+      .then((r) => {
+        if (r.status === 401) { handleLogout(); return null; }
+        if (!r.ok) throw new Error("Delete failed");
+        
+        // Background refresh to guarantee sync correctness
+        fetchHabits();
+      })
+      .catch((e) => {
+        console.error(e);
+        // Rollback on failure
+        setHabits(originalHabits);
+        localStorage.setItem("cached_habits_data", JSON.stringify(originalHabits));
+        showTemporaryMessage("Error deleting habit");
+      });
   };
 
   const deleteRoutine = (routineId, routineName) => {
     if (!window.confirm(`Delete "${routineName}" and all its habits? This cannot be undone.`)) return;
+
+    // Save states for potential rollback
+    const originalRoutines = [...routines];
+    const originalHabits = [...habits];
+
+    // Optimistically update local states & caches immediately
+    setRoutines((prev) => {
+      const next = prev.filter((r) => r.id !== routineId);
+      localStorage.setItem("cached_routines_data", JSON.stringify(next));
+      return next;
+    });
+
+    setHabits((prev) => {
+      const next = prev.filter((h) => Number(h.routine_id) !== Number(routineId));
+      localStorage.setItem("cached_habits_data", JSON.stringify(next));
+      return next;
+    });
+
+    showTemporaryMessage(`"${routineName}" routine deleted`);
+    window.dispatchEvent(new Event("habit-mutate"));
+
     fetch(apiUrl(`/routines/${routineId}`), { method: "DELETE", headers: { Authorization: `Bearer ${token}` } })
       .then((r) => {
         if (r.status === 401) { handleLogout(); return null; }
         if (!r.ok) throw new Error("Delete failed");
-        showTemporaryMessage(`"${routineName}" routine deleted`);
+        
+        // Background refresh to guarantee database sync
         fetchRoutines();
         fetchHabits();
       })
-      .catch((e) => { console.error(e); showTemporaryMessage("Error deleting routine"); });
+      .catch((e) => {
+        console.error(e);
+        // Rollback on failure
+        setRoutines(originalRoutines);
+        setHabits(originalHabits);
+        localStorage.setItem("cached_routines_data", JSON.stringify(originalRoutines));
+        localStorage.setItem("cached_habits_data", JSON.stringify(originalHabits));
+        showTemporaryMessage("Error deleting routine");
+      });
   };
 
   const handleEditHabit = (habit) => { setPrefillRoutineId(null); setEditingHabit(habit); setShowModal(true); };
@@ -469,7 +600,14 @@ function Habit() {
     setIsAddingHabit(true);
     fetch(apiUrl(`/habits/${editingHabit.id}`), { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(habitData) })
       .then((r) => { if (r.status === 401) { handleLogout(); return null; } if (!r.ok) throw new Error("Could not update habit"); return r.json(); })
-      .then((h) => { if (!h) return; setEditingHabit(null); setShowModal(false); showTemporaryMessage("Habit updated!"); return fetchHabits(); })
+      .then((h) => {
+        if (!h) return;
+        setEditingHabit(null);
+        setShowModal(false);
+        showTemporaryMessage("Habit updated!");
+        window.dispatchEvent(new Event("habit-mutate"));
+        return fetchHabits();
+      })
       .catch((e) => { console.error(e); setMessage(e.message || "Error updating habit"); })
       .finally(() => setIsAddingHabit(false));
   };
@@ -495,16 +633,29 @@ function Habit() {
   const submitProgress = (habit, value) => {
     const parsed = Number(value);
     if (!parsed || parsed < 0) { setMessage("Enter a valid progress value"); return; }
+    const originalHabits = habits;
     setSubmittingHabitId(habit.id);
+    setHabits((prev) => {
+      const next = prev.map((item) => item.id === habit.id ? applyHabitProgress(item, parsed) : item);
+      localStorage.setItem("cached_habits_data", JSON.stringify(next));
+      return next;
+    });
+    setCustomValues((p) => ({ ...p, [habit.id]: "" }));
+    showTemporaryMessage(`${habit.title} +${parsed}${habit.target_type === "duration" ? " min" : ""}`);
+
     fetch(apiUrl("/logs"), { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ habit_id: habit.id, value_completed: parsed }) })
       .then((r) => { if (r.status === 401) { handleLogout(); return null; } if (!r.ok) throw new Error("Failed to update habit"); return r.json(); })
       .then((result) => {
         if (!result) return;
-        setCustomValues((p) => ({ ...p, [habit.id]: "" }));
-        showTemporaryMessage(`${habit.title} +${parsed}${habit.target_type === "duration" ? " min" : ""}`);
+        window.dispatchEvent(new Event("habit-mutate"));
         return fetchHabits();
       })
-      .catch((e) => { console.error(e); setMessage(e.message || "Could not update progress"); })
+      .catch((e) => {
+        console.error(e);
+        setHabits(originalHabits);
+        localStorage.setItem("cached_habits_data", JSON.stringify(originalHabits));
+        setMessage(e.message || "Could not update progress");
+      })
       .finally(() => setSubmittingHabitId(null));
   };
 
@@ -535,6 +686,7 @@ function Habit() {
   }));
   const routineCardData = useMemo(() => routines
     .map((routine) => {
+      const allRoutineHabits = habits.filter((habit) => Number(habit.routine_id) === Number(routine.id));
       const routineHabits = visibleHabits.filter((habit) => Number(habit.routine_id) === Number(routine.id));
       const filteredHabits = routineTimeFilter === "all"
         ? routineHabits
@@ -544,10 +696,11 @@ function Habit() {
         ...routine,
         habits: filteredHabits,
         total: filteredHabits.length,
+        allTotal: allRoutineHabits.length,
       };
     })
-    .filter((routine) => routine.total > 0),
-  [routines, routineTimeFilter, selectedRoutineId, visibleHabits]);
+    .filter((routine) => routineTimeFilter === "all" || routine.total > 0),
+  [habits, routines, routineTimeFilter, visibleHabits]);
   useEffect(() => {
     if (viewMode !== "routine") return;
     if (routineCardData.length === 0) {
@@ -570,25 +723,16 @@ function Habit() {
     }
     setShowModal(true);
   };
-  const renderHabitCards = (items) => (
-    <div className="habit-card-grid">
-      {items.map((habit) => (
-        <HabitCard
-          key={habit.id}
-          habit={habit}
-          submittingHabitId={submittingHabitId}
-          customValues={customValues}
-          onEdit={handleEditHabit}
-          onDelete={deleteHabit}
-          onQuick={submitProgress}
-          onCustomChange={handleCustomValueChange}
-          onCustomSubmit={handleCustomSubmit}
-          onFocus={setFocusHabit}
-          onCategoryClick={(cat) => handleSelectCategory(cat, "active")}
-        />
-      ))}
-    </div>
-  );
+  if (isLoading) {
+    return (
+      <div className="habits-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
+        <div style={{ textAlign: "center" }}>
+          <div className="auth-spinner" style={{ margin: "0 auto 16px auto", width: "28px", height: "28px", borderTopColor: "#fbbf24" }} />
+          <p style={{ color: "#9ca3af", fontStyle: "italic" }}>Gathering your active habits...</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="habits-shell">
       <div className="habits-frame">
@@ -656,7 +800,11 @@ function Habit() {
           <CreateRoutineModal
             token={token}
             onClose={() => setShowRoutineModal(false)}
-            onCreated={() => {
+            onCreated={(created) => {
+              if (created?.routine?.id) {
+                setSelectedRoutineId(String(created.routine.id));
+              }
+              showTemporaryMessage("Routine created!");
               fetchRoutines();
               fetchHabits();
               setShowRoutineModal(false);
@@ -894,27 +1042,6 @@ function Habit() {
                   + Create Routine
                 </button>
 
-                  {showRoutineForm && (
-                    <form className="routine-create-form" onSubmit={handleCreateRoutine}>
-                      <input
-                        className="routine-emoji-input"
-                        value={routineDraft.emoji}
-                        onChange={(event) => setRoutineDraft((prev) => ({ ...prev, emoji: event.target.value }))}
-                        maxLength={4}
-                        aria-label="Routine emoji"
-                      />
-                      <input
-                        className="routine-name-input"
-                        value={routineDraft.name}
-                        onChange={(event) => setRoutineDraft((prev) => ({ ...prev, name: event.target.value }))}
-                        placeholder="Routine name"
-                      />
-                      <button className="routine-save-btn" disabled={isCreatingRoutine}>
-                        {isCreatingRoutine ? "Saving..." : "Save"}
-                      </button>
-                    </form>
-                  )}
-
                   <div className="routine-filter-row" aria-label="Routine time filter">
                     {TIME_BLOCK_FILTERS.map((filter) => (
                       <button
@@ -941,7 +1068,9 @@ function Habit() {
                           <h3 className="routine-card-title">
                             {routine.emoji} {routine.name}
                           </h3>
-                          <span>{routine.total} {routine.total === 1 ? "habit" : "habits"}</span>
+                          <span>
+                            {routine.total} active / {routine.allTotal} {routine.allTotal === 1 ? "habit" : "habits"}
+                          </span>
                         </button>
                         <button
                           className="routine-delete-btn"

@@ -8,29 +8,29 @@
 
 /* ── Tokens ── */
 :root {
-  --bg-shell:       #0e0c0a;
-  --bg-frame:       #151210;
-  --bg-card:        #1a1612;
-  --bg-card-hover:  #201c17;
-  --bg-pill:        #252019;
-  --surface:        #1e1a15;
+  --bg-shell:       #faf6f0;
+  --bg-frame:       #f3eae0;
+  --bg-card:        rgba(255, 255, 255, 0.85);
+  --bg-card-hover:  rgba(255, 255, 255, 0.95);
+  --bg-pill:        #e2d7c7;
+  --surface:        rgba(255, 255, 255, 0.9);
 
-  --gold:           #c9903a;
-  --gold-light:     #e8b46a;
-  --gold-dim:       rgba(201, 144, 58, 0.18);
-  --gold-glow:      rgba(201, 144, 58, 0.08);
+  --gold:           #b45309;
+  --gold-light:     #c2410c;
+  --gold-dim:       rgba(180, 83, 9, 0.08);
+  --gold-glow:      rgba(180, 83, 9, 0.04);
 
-  --green:          #3d7a62;
-  --green-light:    #5aaa87;
-  --green-dim:      rgba(61, 122, 98, 0.15);
+  --green:          #166534;
+  --green-light:    #15803d;
+  --green-dim:      rgba(22, 101, 52, 0.08);
 
-  --text-primary:   #f0e8da;
-  --text-secondary: rgba(240, 232, 218, 0.55);
-  --text-muted:     rgba(240, 232, 218, 0.3);
+  --text-primary:   #2b241e;
+  --text-secondary: #6b5d50;
+  --text-muted:     #8c7d70;
 
-  --border:         rgba(240, 232, 218, 0.07);
-  --border-hover:   rgba(201, 144, 58, 0.25);
-  --border-active:  rgba(201, 144, 58, 0.5);
+  --border:         rgba(43, 36, 30, 0.08);
+  --border-hover:   rgba(180, 83, 9, 0.25);
+  --border-active:  rgba(180, 83, 9, 0.5);
 
   --radius-sm:  8px;
   --radius-md:  14px;
@@ -45,8 +45,9 @@
 .habits-shell {
   min-height: 100vh;
   background:
-    radial-gradient(ellipse 60% 40% at 10% 0%, rgba(201, 144, 58, 0.07) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 50% at 90% 80%, rgba(61, 122, 98, 0.07) 0%, transparent 55%),
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.15), transparent 45%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 45%),
+    radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.08), transparent 50%),
     var(--bg-shell);
   font-family: 'DM Sans', sans-serif;
   color: var(--text-primary);
@@ -84,9 +85,9 @@
   letter-spacing: -0.03em;
   background: linear-gradient(
     90deg,
-    #1f5c46 0%,
-    #d6b36a 55%,
-    #f3d38b 100%
+    #166534 0%,
+    #b45309 55%,
+    #c2410c 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -145,7 +146,7 @@
   position: absolute;
   inset: 4px;
   border-radius: 50%;
-  background: #14110f;
+  background: #ffffff;
 }
 
 .habits-summary-ring span {
@@ -1238,162 +1239,4 @@
   color: #2d2418;
 }
 
-/* Dark planner polish */
-.habits-shell {
-  background:
-    radial-gradient(circle at 8% 0%, rgba(214, 149, 44, 0.16), transparent 30%),
-    radial-gradient(circle at 100% 18%, rgba(22, 101, 52, 0.15), transparent 28%),
-    linear-gradient(145deg, #0d1110 0%, #151713 50%, #0f1512 100%);
-  color: #f7f1e8;
-}
 
-.habits-title {
-  -webkit-text-fill-color: #f7f1e8;
-  color: #f7f1e8;
-}
-
-.habits-subtitle,
-.habits-section-meta,
-.hcard-sub,
-.hcard-progress-detail,
-.hcard-chip,
-.done-copy span,
-.routine-detail-top p {
-  color: rgba(247, 241, 232, 0.64);
-}
-
-.habits-header {
-  border-color: rgba(247, 241, 232, 0.08);
-}
-
-.habits-today-badge,
-.habits-section,
-.habits-summary-card,
-.habits-tabs,
-.view-switcher,
-.routine-view {
-  background: rgba(22, 24, 20, 0.78);
-  border: 1px solid rgba(247, 241, 232, 0.09);
-  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.26);
-  backdrop-filter: blur(16px);
-}
-
-.view-switcher button,
-.habits-tab {
-  color: rgba(247, 241, 232, 0.68);
-}
-
-.view-switcher button.active,
-.habits-tab.is-active {
-  background: #166534;
-  border-color: #166534;
-  color: #fffaf2;
-}
-
-.habits-cat-pill {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(247, 241, 232, 0.1);
-  color: rgba(247, 241, 232, 0.72);
-}
-
-.routine-title {
-  color: #f4e8d3;
-}
-
-.habit-card-grid {
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.hcard {
-  min-height: 0;
-  padding: 20px;
-  background: linear-gradient(180deg, rgba(30, 32, 27, 0.98), rgba(22, 24, 20, 0.98));
-  border-color: rgba(247, 241, 232, 0.1);
-  border-radius: 18px;
-  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
-}
-
-.hcard:hover {
-  background: linear-gradient(180deg, rgba(35, 38, 32, 0.98), rgba(24, 27, 22, 0.98));
-  border-color: rgba(214, 149, 44, 0.34);
-  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.3);
-}
-
-.hcard-title {
-  color: #fffaf2;
-  white-space: normal;
-}
-
-.hcard-cat-tag {
-  background: rgba(255, 255, 255, 0.06) !important;
-  color: rgba(247, 241, 232, 0.82) !important;
-  border-color: rgba(247, 241, 232, 0.14) !important;
-}
-
-.hcard-chip {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(247, 241, 232, 0.1);
-}
-
-.hcard-chip--points {
-  background: rgba(214, 149, 44, 0.13);
-  border-color: rgba(214, 149, 44, 0.28);
-  color: #f0c06a;
-}
-
-.hcard-progress-pct {
-  color: #f0c06a;
-}
-
-.hcard-track {
-  background: rgba(247, 241, 232, 0.09);
-}
-
-.hcard-footer {
-  border-color: rgba(247, 241, 232, 0.08);
-}
-
-.hcard-input {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(247, 241, 232, 0.12);
-  color: #fffaf2;
-}
-
-.hcard-input::placeholder {
-  color: rgba(247, 241, 232, 0.42);
-}
-
-.done-item,
-.routine-card,
-.routine-empty-row {
-  background: rgba(22, 24, 20, 0.92);
-  border-color: rgba(247, 241, 232, 0.1);
-}
-
-.done-copy strong,
-.routine-card-title {
-  color: #fffaf2;
-}
-
-.routine-card-button.is-selected,
-.routine-card-button:hover {
-  background: rgba(22, 101, 52, 0.18);
-  border-color: rgba(54, 180, 101, 0.38);
-}
-
-.routine-emoji-input,
-.routine-name-input {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(247, 241, 232, 0.12);
-  color: #fffaf2;
-}
-
-.routine-save-btn,
-.routine-add-habit-btn,
-.routine-empty-row button,
-.create-routine-btn {
-  background: #166534;
-  border-color: #166534;
-  color: #fffaf2;
-}
