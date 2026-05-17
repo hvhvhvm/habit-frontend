@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
 import ProtectedRoute from "./ProtectedRoute";
@@ -12,7 +12,6 @@ import CategoryRoutinePage from "./CategoryRoutinePage";
 import Onboarding from "./onboarding";
 import AppShell from "./AppShell";
 import { apiUrl } from "./api";
-
 import OnePercent from "./1percent";
 import RoutineDetailPage from "./routinedetail";
 
@@ -24,54 +23,56 @@ function App() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  // Prevent double onboarding submission
+  const onboardingSubmitting = useRef(false);
 
   useEffect(() => {
+    const publicRoutes = ["/login", "/register"];
+    // Also skip auth check on onboarding — token was just created
+    if (publicRoutes.includes(location.pathname)) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     async function checkUser() {
-      const publicRoutes = ["/login", "/register"];
-
-      if (publicRoutes.includes(location.pathname)) {
-        setLoading(false);
-        return;
-      }
-
       try {
         const token = localStorage.getItem("token");
 
         if (!token) {
-          navigate("/login", { replace: true });
+          if (!cancelled) navigate("/login", { replace: true });
           return;
         }
 
         const res = await fetch(apiUrl("/auth/me"), {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
+        if (cancelled) return;
+
         if (!res.ok) {
-          localStorage.removeItem("token");
-          sessionStorage.setItem("session_expired", "true");
+          // Only set session_expired if token was explicitly rejected
+          if (res.status === 401 || res.status === 403) {
+            localStorage.removeItem("token");
+            sessionStorage.setItem("session_expired", "true");
+          }
           navigate("/login", { replace: true });
           return;
         }
 
         const data = await res.json();
 
-        // Silently refresh the token to extend the session
-        try {
-          const refreshRes = await fetch(apiUrl("/auth/refresh"), {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          if (refreshRes.ok) {
-            const refreshData = await refreshRes.json();
-            localStorage.setItem("token", refreshData.access_token);
-          }
-        } catch {
-          // Token refresh failed silently — current token is still valid
-        }
+        if (cancelled) return;
+
+        // Silently refresh token in background — don't block navigation
+        fetch(apiUrl("/auth/refresh"), {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then((r) => r.ok ? r.json() : null)
+          .then((d) => { if (d?.access_token) localStorage.setItem("token", d.access_token); })
+          .catch(() => {});
 
         if (!data.onboarding_done && location.pathname !== "/onboarding") {
           navigate("/onboarding", { replace: true });
@@ -82,73 +83,70 @@ function App() {
           navigate("/dashboard", { replace: true });
           return;
         }
+
       } catch (err) {
         console.error("Auth check failed:", err);
-        localStorage.removeItem("token");
-        sessionStorage.setItem("session_expired", "true");
-        navigate("/login", { replace: true });
+        // Network error — don't log user out, just stop loading
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     checkUser();
-  }, [navigate, location.pathname]);
+    return () => { cancelled = true; };
+  }, [location.pathname, navigate]);
 
   if (loading) return <div>Loading...</div>;
 
   async function handleOnboardingComplete(data) {
+    // Prevent double submission
+    if (onboardingSubmitting.current) return;
+    onboardingSubmitting.current = true;
+
     try {
       const token = localStorage.getItem("token");
-      
+      if (!token) { navigate("/login", { replace: true }); return; }
+
       localStorage.setItem("name", data.name);
 
-      if (!token) {
-        navigate("/login", { replace: true });
-        return;
-      }
-
-      for (const h of data.habits) {
-        const res = await fetch(apiUrl("/habits"), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            title: h.title,
-            category: h.category,
-            target_type: normalizeHabitTargetType(h.target_type),
-            target_value: h.target_value,
-            repeat: "daily",
-            days: [],
-            points: h.points,
-            is_session: false,
-          }),
-        });
-
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error("Habit creation failed:", errorText);
-        }
-      }
+      // Create all habits in parallel instead of sequential
+      await Promise.all(
+        data.habits.map((h) =>
+          fetch(apiUrl("/habits"), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              title: h.title,
+              category: h.category,
+              target_type: normalizeHabitTargetType(h.target_type),
+              target_value: h.target_value,
+              repeat: "daily",
+              days: [],
+              points: h.points,
+              is_session: false,
+            }),
+          })
+        )
+      );
 
       const completeRes = await fetch(apiUrl("/auth/complete-onboarding"), {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!completeRes.ok) {
-        const errorText = await completeRes.text();
-        console.error("Complete onboarding failed:", errorText);
+        console.error("Complete onboarding failed:", await completeRes.text());
         return;
       }
 
       navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Onboarding error:", err);
+    } finally {
+      onboardingSubmitting.current = false;
     }
   }
 
@@ -157,100 +155,15 @@ function App() {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-
-      <Route
-        path="/onboarding"
-        element={
-          <ProtectedRoute>
-            <Onboarding onComplete={handleOnboardingComplete} />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <AppShell>
-              <Dashboard />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      
-      <Route
-        path="/habits"
-        element={
-          <ProtectedRoute>
-            <AppShell>
-              <Habit />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/focus"
-        element={
-          <ProtectedRoute>
-            <AppShell>
-              <FocusPage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/1percent"        
-       element={
-          <ProtectedRoute>
-            <AppShell>
-              <OnePercent />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/ai"
-        element={
-          <ProtectedRoute>
-            <AppShell>
-              <AIInsights />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-        <Route
-        path="/momentum"
-        element={
-          <ProtectedRoute>
-            <AppShell>
-              <Momentum />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/routines/:routineId"
-        element={
-        <ProtectedRoute>
-          <RoutineDetailPage />
-        </ProtectedRoute>
-        }
-
-
-      />
-      
-
-      <Route
-        path="/category-routine/:categoryName"
-        element={
-          <ProtectedRoute>
-            <AppShell>
-              <CategoryRoutinePage />
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-
+      <Route path="/onboarding" element={<ProtectedRoute><Onboarding onComplete={handleOnboardingComplete} /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><AppShell><Dashboard /></AppShell></ProtectedRoute>} />
+      <Route path="/habits" element={<ProtectedRoute><AppShell><Habit /></AppShell></ProtectedRoute>} />
+      <Route path="/focus" element={<ProtectedRoute><AppShell><FocusPage /></AppShell></ProtectedRoute>} />
+      <Route path="/1percent" element={<ProtectedRoute><AppShell><OnePercent /></AppShell></ProtectedRoute>} />
+      <Route path="/ai" element={<ProtectedRoute><AppShell><AIInsights /></AppShell></ProtectedRoute>} />
+      <Route path="/momentum" element={<ProtectedRoute><AppShell><Momentum /></AppShell></ProtectedRoute>} />
+      <Route path="/routines/:routineId" element={<ProtectedRoute><RoutineDetailPage /></ProtectedRoute>} />
+      <Route path="/category-routine/:categoryName" element={<ProtectedRoute><AppShell><CategoryRoutinePage /></AppShell></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
